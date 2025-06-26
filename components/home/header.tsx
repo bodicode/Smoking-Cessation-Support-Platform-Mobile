@@ -15,11 +15,7 @@ type HomeHeaderProps = {
 const AVATAR_SIZE = 42;
 const PROGRESS_SIZE = 48;
 
-const HomeHeader: React.FC<HomeHeaderProps> = ({
-  user,
-  onCrownPress,
-  onNotePress,
-}) => {
+const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress }) => {
   const router = useRouter();
 
   const goToProfile = () => {
@@ -83,7 +79,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: COLORS.BG,
+    backgroundColor: COLORS.light.BG,
   },
   headerContainer: {
     flexDirection: "row",
@@ -91,6 +87,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     width: "100%",
     paddingHorizontal: 18,
+    paddingBottom: 8,
     minHeight: 44,
   },
   leftBox: { flexDirection: "row", alignItems: "center" },
@@ -99,7 +96,7 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: COLORS.AVATAR_BG,
+    backgroundColor: COLORS.light.AVATAR_BG,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
@@ -110,23 +107,23 @@ const styles = StyleSheet.create({
     height: PROGRESS_SIZE,
     borderRadius: PROGRESS_SIZE / 2,
     borderWidth: 3,
-    borderColor: COLORS.ACTIVE,
+    borderColor: COLORS.light.ACTIVE,
     zIndex: 1,
   },
   userNameText: {
-    color: COLORS.TEXT,
+    color: COLORS.light.TEXT,
     fontSize: 18,
     fontWeight: "bold",
     lineHeight: 22,
     marginLeft: 12,
   },
   userPointText: {
-    color: COLORS.INACTIVE,
+    color: COLORS.light.INACTIVE,
     fontSize: 14,
     marginTop: 2,
   },
   loginBtn: {
-    backgroundColor: COLORS.ACTIVE,
+    backgroundColor: COLORS.light.ACTIVE,
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 22,
@@ -140,7 +137,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   crownBtn: {
-    backgroundColor: COLORS.BTN_BG,
+    backgroundColor: COLORS.light.BTN_BG,
     paddingHorizontal: 26,
     paddingVertical: 8,
     borderRadius: 22,
@@ -164,9 +161,9 @@ const styles = StyleSheet.create({
     width: 11,
     height: 11,
     borderRadius: 5.5,
-    backgroundColor: COLORS.BADGE,
+    backgroundColor: COLORS.light.BADGE,
     borderWidth: 2,
-    borderColor: COLORS.BG,
+    borderColor: COLORS.light.BG,
     zIndex: 3,
   },
 });

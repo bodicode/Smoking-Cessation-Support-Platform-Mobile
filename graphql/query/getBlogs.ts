@@ -1,16 +1,8 @@
 import { gql } from "@apollo/client";
 
 export const GET_BLOGS = gql`
-  query GetBlogs {
-    blogs(
-      params: {
-        page: 1
-        limit: 5
-        search: ""
-        orderBy: "created_at"
-        sortOrder: "asc"
-      }
-    ) {
+  query GetBlogs($params: PaginationParamsInput, $filters: BlogFilterInput) {
+    blogs(params: $params, filters: $filters) {
       data {
         id
         title
