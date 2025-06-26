@@ -1,12 +1,24 @@
-import React from "react";
+import React, { useEffect, useLayoutEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import COLORS from "@/constants/Colors";
-import { useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    if (!user) router.replace("/login");
+  }, [user]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: "",
+      headerBackTitleVisible: false,
+    });
+  }, [navigation]);
 
   const handleLogout = () => {
     Alert.alert("Xác nhận đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
@@ -40,25 +52,25 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BG,
+    backgroundColor: COLORS.light.BG,
     justifyContent: "center",
     alignItems: "center",
   },
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: COLORS.TEXT,
+    color: COLORS.light.TEXT,
     marginBottom: 18,
   },
   name: {
     fontSize: 18,
-    color: COLORS.ACTIVE,
+    color: COLORS.light.ACTIVE,
     fontWeight: "bold",
     marginBottom: 8,
   },
-  email: { fontSize: 15, color: COLORS.SUBTEXT, marginBottom: 32 },
+  email: { fontSize: 15, color: COLORS.light.SUBTEXT, marginBottom: 32 },
   logoutBtn: {
-    backgroundColor: COLORS.ACTIVE,
+    backgroundColor: COLORS.light.ACTIVE,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 10,

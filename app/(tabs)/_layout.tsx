@@ -9,12 +9,12 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.TAB_BG,
+          backgroundColor: COLORS.light.TAB_BG,
           borderTopWidth: 0,
           height: 66,
         },
-        tabBarActiveTintColor: COLORS.ACTIVE,
-        tabBarInactiveTintColor: COLORS.INACTIVE,
+        tabBarActiveTintColor: COLORS.light.ACTIVE,
+        tabBarInactiveTintColor: COLORS.light.INACTIVE,
         tabBarLabelStyle: { fontSize: 12, marginBottom: 4 },
       }}
     >
@@ -26,7 +26,7 @@ export default function TabLayout() {
             <MaterialCommunityIcons
               name="view-grid-outline"
               size={28}
-              color={focused ? COLORS.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : "#fff"}
             />
           ),
         }}
@@ -40,7 +40,7 @@ export default function TabLayout() {
             <Feather
               name="bookmark"
               size={24}
-              color={focused ? COLORS.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : "#fff"}
             />
           ),
         }}
@@ -55,13 +55,13 @@ export default function TabLayout() {
               style={{
                 width: 64,
                 height: 64,
-                backgroundColor: COLORS.ACTIVE,
+                backgroundColor: COLORS.light.ACTIVE,
                 borderRadius: 32,
                 justifyContent: "center",
                 alignItems: "center",
                 marginBottom: 10,
                 borderWidth: 5,
-                borderColor: COLORS.TAB_BG,
+                borderColor: COLORS.light.TAB_BG,
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.2,
@@ -69,7 +69,7 @@ export default function TabLayout() {
                 elevation: 6,
               }}
             >
-              <Feather name="plus" size={34} color={COLORS.PLUS_ICON} />
+              <Feather name="plus" size={34} color={COLORS.light.PLUS_ICON} />
             </View>
           ),
           tabBarLabel: () => null,
@@ -84,7 +84,7 @@ export default function TabLayout() {
             <Ionicons
               name="chatbubble-ellipses-outline"
               size={27}
-              color={focused ? COLORS.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : "#fff"}
             />
           ),
         }}
@@ -98,7 +98,7 @@ export default function TabLayout() {
             <Ionicons
               name="compass-outline"
               size={27}
-              color={focused ? COLORS.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : "#fff"}
             />
           ),
         }}

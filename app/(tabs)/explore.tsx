@@ -13,23 +13,31 @@ import {
 } from "react-native";
 import { BlogService } from "@/services/blogService";
 import { Blog } from "@/types/api/blog";
-import HTMLView from "react-native-htmlview";
 import HomeHeader from "@/components/home/header";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
+import Pagination from "@/components/common/pagination";
 
 export default function ExploreScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
 
   useEffect(() => {
-    BlogService.getBlogs()
-      .then((res) => setBlogs(res.data))
-      .catch((err) => console.error(err))
+    setLoading(true);
+    BlogService.getBlogs({ page, limit: 5 })
+      .then((res) => {
+        setBlogs(res.data);
+        setTotalPages(res.totalPages || 1);
+        setHasNext(page < res.totalPages);
+      })
+      .catch((err) => console.error(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page]);
 
   if (loading) {
     return (
@@ -80,14 +88,6 @@ export default function ExploreScreen() {
                   <Text style={styles.time}>{formatDate(item.created_at)}</Text>
                 )}
               </View>
-              {/* <HTMLView
-                value={item.content}
-                stylesheet={{
-                  p: { ...styles.content, color: "#434343" },
-                  strong: { fontWeight: "bold" },
-                }}
-                textComponentProps={{ numberOfLines: 2, ellipsizeMode: "tail" }}
-              /> */}
               <Text
                 style={styles.content}
                 numberOfLines={2}
@@ -99,16 +99,20 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         )}
         showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          totalPages > 1 ? (
+            <Pagination page={page} hasNext={hasNext} onChange={setPage} />
+          ) : null
+        }
       />
     </View>
   );
 }
 
-// Hàm format ngày cho đẹp, ví dụ: "3 ngày trước" hoặc "10/07/2024"
 function formatDate(dateString: string) {
   const date = new Date(dateString);
   const now = new Date();
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000); // seconds
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diff < 60 * 60 * 24) return "Hôm nay";
   if (diff < 60 * 60 * 24 * 2) return "Hôm qua";

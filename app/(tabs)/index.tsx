@@ -39,7 +39,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name="calendar-check"
                 size={28}
-                color={COLORS.ACTIVE}
+                color={COLORS.light.ACTIVE}
               />
               <Text style={styles.statText}>10 ngày</Text>
               <Text style={styles.statLabel}>Đã bỏ thuốc</Text>
@@ -48,7 +48,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name="cash"
                 size={28}
-                color={COLORS.ACTIVE}
+                color={COLORS.light.ACTIVE}
               />
               <Text style={styles.statText}>200.000đ</Text>
               <Text style={styles.statLabel}>Tiết kiệm</Text>
@@ -57,7 +57,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name="emoticon-happy-outline"
                 size={28}
-                color={COLORS.ACTIVE}
+                color={COLORS.light.ACTIVE}
               />
               <Text style={styles.statText}>0</Text>
               <Text style={styles.statLabel}>Hút lại</Text>
@@ -75,23 +75,23 @@ export default function HomeScreen() {
           style={{ marginTop: 24 }}
         >
           <View style={styles.actionCard}>
-            <Feather name="target" size={24} color={COLORS.ACTIVE} />
+            <Feather name="target" size={24} color={COLORS.light.ACTIVE} />
             <Text style={styles.actionText}>Lộ trình</Text>
           </View>
           <View style={styles.actionCard}>
-            <Feather name="activity" size={24} color={COLORS.ACTIVE} />
+            <Feather name="activity" size={24} color={COLORS.light.ACTIVE} />
             <Text style={styles.actionText}>Công cụ</Text>
           </View>
           <View style={styles.actionCard}>
-            <Feather name="bar-chart" size={24} color={COLORS.ACTIVE} />
+            <Feather name="bar-chart" size={24} color={COLORS.light.ACTIVE} />
             <Text style={styles.actionText}>Thống kê</Text>
           </View>
           <View style={styles.actionCard}>
-            <Feather name="users" size={24} color={COLORS.ACTIVE} />
+            <Feather name="users" size={24} color={COLORS.light.ACTIVE} />
             <Text style={styles.actionText}>Diễn đàn</Text>
           </View>
           <View style={styles.actionCard}>
-            <Feather name="compass" size={24} color={COLORS.ACTIVE} />
+            <Feather name="compass" size={24} color={COLORS.light.ACTIVE} />
             <Text style={styles.actionText}>Khám phá</Text>
           </View>
         </ScrollView>
@@ -107,17 +107,17 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.BG },
+  container: { flex: 1, backgroundColor: COLORS.light.BG },
   safeArea: {
-    backgroundColor: COLORS.BG,
+    backgroundColor: COLORS.light.BG,
     zIndex: 1,
   },
   scroll: {
     flex: 1,
-    backgroundColor: COLORS.BG,
+    backgroundColor: COLORS.light.BG,
   },
   progressCard: {
-    backgroundColor: COLORS.CARD_BG,
+    backgroundColor: COLORS.light.CARD_BG,
     borderRadius: 16,
     padding: 18,
     marginBottom: 18,
@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   welcome: {
-    color: COLORS.TEXT,
+    color: COLORS.light.TEXT,
     fontSize: 18,
     fontWeight: "bold",
   },
   slogan: {
-    color: COLORS.SUBTEXT,
+    color: COLORS.light.SUBTEXT,
     fontSize: 13,
     marginBottom: 12,
   },
@@ -147,17 +147,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statText: {
-    color: COLORS.ACTIVE,
+    color: COLORS.light.ACTIVE,
     fontSize: 16,
     fontWeight: "bold",
     marginVertical: 2,
   },
   statLabel: {
-    color: COLORS.SUBTEXT,
+    color: COLORS.light.SUBTEXT,
     fontSize: 12,
   },
   ctaButton: {
-    backgroundColor: COLORS.ACTIVE,
+    backgroundColor: COLORS.light.ACTIVE,
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   actionCard: {
-    backgroundColor: COLORS.CARD_BG,
+    backgroundColor: COLORS.light.CARD_BG,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   actionText: {
-    color: COLORS.TEXT,
+    color: COLORS.light.TEXT,
     marginTop: 8,
     fontSize: 13,
   },
   tipBox: {
     marginTop: 32,
-    backgroundColor: COLORS.ACTIVE,
+    backgroundColor: COLORS.light.ACTIVE,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",

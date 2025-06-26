@@ -69,7 +69,7 @@ export default function RegisterScreen() {
           type: "success",
           text1: "Đăng ký thành công",
         });
-        router.replace("/home");
+        router.replace("/");
       } else {
         setErrors({ general: "Thông tin chưa hợp lệ hoặc đã tồn tại!" });
       }
@@ -111,7 +111,7 @@ export default function RegisterScreen() {
         <Ionicons
           name="person-add-outline"
           size={64}
-          color={COLORS.ACTIVE}
+          color={COLORS.light.ACTIVE}
           style={{ alignSelf: "center", marginBottom: 10 }}
         />
         <Text style={styles.title}>Đăng ký</Text>
@@ -120,7 +120,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nhập họ tên"
-          placeholderTextColor={COLORS.PLACEHOLDER}
+          placeholderTextColor={COLORS.light.PLACEHOLDER}
           value={name}
           onChangeText={setName}
           editable={!loading}
@@ -131,7 +131,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nhập tên đăng nhập"
-          placeholderTextColor={COLORS.PLACEHOLDER}
+          placeholderTextColor={COLORS.light.PLACEHOLDER}
           value={username}
           onChangeText={setUsername}
           editable={!loading}
@@ -144,7 +144,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nhập email"
-          placeholderTextColor={COLORS.PLACEHOLDER}
+          placeholderTextColor={COLORS.light.PLACEHOLDER}
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -157,7 +157,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nhập mật khẩu"
-          placeholderTextColor={COLORS.PLACEHOLDER}
+          placeholderTextColor={COLORS.light.PLACEHOLDER}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -171,7 +171,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Nhập lại mật khẩu"
-          placeholderTextColor={COLORS.PLACEHOLDER}
+          placeholderTextColor={COLORS.light.PLACEHOLDER}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -184,7 +184,7 @@ export default function RegisterScreen() {
         <TouchableOpacity
           style={[
             styles.button,
-            loading && { backgroundColor: COLORS.PLACEHOLDER },
+            loading && { backgroundColor: COLORS.light.PLACEHOLDER },
           ]}
           onPress={handleRegister}
           disabled={loading}
@@ -207,13 +207,13 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BG,
+    backgroundColor: COLORS.light.BG,
     justifyContent: "center",
     alignItems: "center",
   },
   card: {
     width: "92%",
-    backgroundColor: COLORS.CARD_BG,
+    backgroundColor: COLORS.light.CARD_BG,
     borderRadius: 18,
     padding: 26,
     shadowColor: "#000",
@@ -223,38 +223,38 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   title: {
-    color: COLORS.ACTIVE,
+    color: COLORS.light.ACTIVE,
     fontSize: 26,
     fontWeight: "bold",
     alignSelf: "center",
     marginBottom: 12,
   },
   label: {
-    color: COLORS.SUBTEXT,
+    color: COLORS.light.SUBTEXT,
     fontSize: 15,
     marginTop: 10,
     marginBottom: 4,
     fontWeight: "500",
   },
   input: {
-    backgroundColor: COLORS.WHITE,
-    color: COLORS.TEXT,
+    backgroundColor: COLORS.light.WHITE,
+    color: COLORS.light.TEXT,
     borderRadius: 8,
     paddingVertical: 11,
     paddingHorizontal: 14,
     fontSize: 16,
     borderWidth: 1.1,
-    borderColor: COLORS.TAB_BG,
+    borderColor: COLORS.light.TAB_BG,
     marginBottom: 2,
   },
   button: {
-    backgroundColor: COLORS.ACTIVE,
+    backgroundColor: COLORS.light.ACTIVE,
     paddingVertical: 13,
     borderRadius: 10,
     alignItems: "center",
     marginTop: 18,
     marginBottom: 8,
-    shadowColor: COLORS.ACTIVE,
+    shadowColor: COLORS.light.ACTIVE,
     shadowOpacity: 0.06,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   linkBox: { alignItems: "center", marginTop: 12 },
   link: {
-    color: COLORS.ACTIVE,
+    color: COLORS.light.ACTIVE,
     textAlign: "center",
     fontSize: 15,
     textDecorationLine: "underline",
