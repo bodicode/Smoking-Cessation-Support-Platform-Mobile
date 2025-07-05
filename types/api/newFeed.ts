@@ -34,3 +34,27 @@ export type FeedResponse = {
 export type FeedApiResult = {
   sharedPosts: FeedResponse;
 };
+
+export interface ManagePostLikeInput {
+  shared_post_id: string;
+}
+
+export interface LikePostResponse {
+  likeSharedPost: {
+    id: string;
+    user: {
+      id: string;
+      name: string;
+    };
+  };
+}
+
+export interface UnlikePostResponse {
+  unlikeSharedPost: {
+    id: string;
+    shared_post: {
+      id: string;
+      likes_count: number;
+    };
+  };
+}

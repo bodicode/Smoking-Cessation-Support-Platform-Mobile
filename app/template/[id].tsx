@@ -8,13 +8,22 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Button,
+  Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { RouteProp, useRoute } from "@react-navigation/native";
+import { useNavigation, useRouter } from "expo-router";
 import { PlanTemplate } from "@/types/api/template";
 import { PlanTemplateService } from "@/services/templatePlanService";
 import { getLevelColor, translateLevel } from "@/utils";
-import { useNavigation } from "expo-router";
+import { IFeedback } from "@/types/api/feedback";
+import { getFeedbacks } from "@/services/feedbackService";
+import { CessationPlanService } from "@/services/myPlanService";
+import Toast from "react-native-toast-message";
 
 const { width } = Dimensions.get("window");
 
@@ -22,24 +31,116 @@ export default function PlanTemplateDetailScreen() {
   const route = useRoute<RouteProp<{ params: { id: string } }, "params">>();
   const { id } = route.params;
   const navigation = useNavigation();
+  const router = useRouter();
 
   const [template, setTemplate] = useState<PlanTemplate | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [feedbacks, setFeedbacks] = useState<IFeedback[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+  const [reason, setReason] = useState("");
+  const [showReasonInput, setShowReasonInput] = useState(false);
+  const [isCustom, setIsCustom] = useState(true);
 
   useEffect(() => {
     PlanTemplateService.getTemplateById(id)
       .then((data) => {
         setTemplate(data);
-        // Set header title khi có data
         if (data?.name) navigation.setOptions({ title: data.name });
       })
+      .catch((error) => {
+        console.error("Lỗi khi tải chi tiết kế hoạch:", error);
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+
+    const fetchFeedbacksForTemplate = async () => {
+      try {
+        setFeedbackLoading(true);
+        const data = await getFeedbacks(
+          id ? { filters: { templateId: id } } : {}
+        );
+        setFeedbacks(data);
+      } catch (error: any) {
+        console.error("Lỗi khi tải feedbacks:", error);
+        setFeedbackError(error.message || "Không thể tải phản hồi.");
+      } finally {
+        setFeedbackLoading(false);
+      }
+    };
+
+    fetchFeedbacksForTemplate();
+  }, [id, navigation]);
+
+  const handleCreatePlan = async () => {
+    try {
+      const existingPlans = await CessationPlanService.getCessationPlans({
+        params: { page: 1, limit: 10 },
+        filters: {},
+      });
+
+      const hasActivePlan = existingPlans.some(
+        (plan) => plan.status !== "COMPLETED"
+      );
+
+      if (hasActivePlan) {
+        Toast.show({
+          type: "info",
+          text1: "Bạn đã có kế hoạch chưa hoàn thành",
+          text2: "Hãy hoàn thành kế hoạch hiện tại trước khi tạo mới.",
+        });
+        setShowReasonInput(false);
+        return;
+      }
+
+      if (!template) {
+        Toast.show({
+          type: "error",
+          text1: "Không tìm thấy kế hoạch mẫu",
+          text2: "Vui lòng thử lại sau.",
+        });
+        setShowReasonInput(false);
+        return;
+      }
+
+      const today = new Date();
+      const targetDate = new Date();
+      targetDate.setDate(today.getDate() + template.estimated_duration_days);
+
+      await CessationPlanService.createCessationPlan({
+        template_id: template.id,
+        reason: reason.trim(),
+        start_date: today.toISOString(),
+        target_date: targetDate.toISOString(),
+        is_custom: isCustom,
+      });
+
+      Toast.show({
+        type: "success",
+        text1: "Tạo kế hoạch thành công!",
+      });
+      setShowReasonInput(false);
+      setReason("");
+      router.push("/(tabs)/myPlan");
+    } catch (error) {
+      console.error(error);
+      Toast.show({
+        type: "error",
+        text1: "Không thể tạo kế hoạch",
+        text2: "Vui lòng thử lại sau.",
+      });
+      setShowReasonInput(false);
+    }
+  };
 
   if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#16F2A8" />
+        <Text style={{ color: "#9ca3af", fontSize: 16, marginTop: 10 }}>
+          Đang tải kế hoạch...
+        </Text>
       </View>
     );
   }
@@ -87,15 +188,18 @@ export default function PlanTemplateDetailScreen() {
         <View style={styles.infoRow}>
           <Ionicons name="person-circle" size={22} color="#73B3FA" />
           <Text style={styles.infoMain}>Coach:</Text>
-          <Text style={styles.infoSub}>{template.coach?.name}</Text>
+          <Text style={styles.infoSub}>{template.coach?.name || "N/A"}</Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="star" size={20} color="#FFB936" />
           <Text style={styles.infoMain}>
-            {template.average_rating.toFixed(1)}/5
+            {template.average_rating
+              ? template.average_rating.toFixed(1)
+              : "0.0"}
+            /5
           </Text>
           <Text style={styles.infoSub}>
-            ({template.total_reviews} đánh giá)
+            ({template.total_reviews || 0} đánh giá)
           </Text>
         </View>
         <View style={styles.infoRow}>
@@ -104,7 +208,10 @@ export default function PlanTemplateDetailScreen() {
           <Text
             style={[styles.infoSub, { color: "#0C9775", fontWeight: "700" }]}
           >
-            {(template.success_rate * 100).toFixed(1)}%
+            {template.success_rate
+              ? (template.success_rate * 100).toFixed(1)
+              : "0.0"}
+            %
           </Text>
         </View>
         <View style={styles.infoRow}>
@@ -116,19 +223,16 @@ export default function PlanTemplateDetailScreen() {
         </View>
       </View>
 
-      {/* Timeline Stages */}
       <Text style={styles.sectionLabel}>Các giai đoạn</Text>
       <View style={styles.timeline}>
         {template.stages.map((stage, idx) => (
           <View key={stage.id} style={styles.timelineRow}>
-            {/* Timeline Dot & Line */}
             <View style={styles.timelineLeft}>
               <View style={styles.timelineDot} />
               {idx < template.stages.length - 1 && (
                 <View style={styles.timelineLine} />
               )}
             </View>
-            {/* Content */}
             <View style={styles.timelineContent}>
               <Text style={styles.stageTitle}>
                 {stage.stage_order}. {stage.title}
@@ -172,6 +276,123 @@ export default function PlanTemplateDetailScreen() {
           </View>
         ))}
       </View>
+
+      <Text style={styles.sectionLabel}>Phản hồi</Text>
+      <View style={styles.feedbacksSection}>
+        {feedbackLoading ? (
+          <View style={styles.centeredFeedback}>
+            <ActivityIndicator size="small" color="#16F2A8" />
+            <Text style={{ color: "#9ca3af", fontSize: 14, marginTop: 5 }}>
+              Đang tải phản hồi...
+            </Text>
+          </View>
+        ) : feedbackError ? (
+          <View style={styles.centeredFeedback}>
+            <Text style={{ color: "#ef4444", fontSize: 14 }}>
+              {feedbackError}
+            </Text>
+          </View>
+        ) : feedbacks.length === 0 ? (
+          <View style={styles.centeredFeedback}>
+            <Text style={{ color: "#9ca3af", fontSize: 14 }}>
+              Chưa có phản hồi nào cho kế hoạch này.
+            </Text>
+          </View>
+        ) : (
+          feedbacks.map((feedback) => (
+            <View key={feedback.id} style={styles.feedbackCard}>
+              <View style={styles.feedbackHeader}>
+                <View style={styles.ratingContainer}>
+                  {[...Array(5)].map((_, i) => (
+                    <Ionicons
+                      key={i}
+                      name={i < feedback.rating ? "star" : "star-outline"}
+                      size={16}
+                      color="#FFB936"
+                      style={{ marginRight: 2 }}
+                    />
+                  ))}
+                  <Text style={styles.feedbackRating}>{feedback.rating}/5</Text>
+                </View>
+                <Text style={styles.feedbackUser}>
+                  {feedback.is_anonymous
+                    ? "Ẩn danh"
+                    : feedback.user?.name || "Người dùng không xác định"}
+                </Text>
+              </View>
+              <Text style={styles.feedbackContent}>{feedback.content}</Text>
+              <Text style={styles.feedbackDate}>
+                {new Date(feedback.created_at).toLocaleDateString("vi-VN")}
+              </Text>
+            </View>
+          ))
+        )}
+      </View>
+
+      <View style={styles.buttonWrapper}>
+        <TouchableOpacity
+          style={styles.useButton}
+          onPress={() => setShowReasonInput(true)}
+        >
+          <Text style={styles.buttonText}>Sử dụng kế hoạch này</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal visible={showReasonInput} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 12,
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: "500" }}>
+                Cá nhân hóa
+              </Text>
+              <Switch
+                value={isCustom}
+                onValueChange={setIsCustom}
+                trackColor={{ false: "#d1d5db", true: "#16F2A8" }}
+                thumbColor={isCustom ? "#0E9F6E" : "#f4f3f4"}
+              />
+            </View>
+            <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>
+              Nhập lý do bạn muốn bỏ thuốc
+            </Text>
+
+            <TextInput
+              placeholder="Ví dụ: Vì sức khỏe của tôi và gia đình"
+              style={styles.textInput}
+              value={reason}
+              onChangeText={setReason}
+              multiline
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "flex-end",
+                marginTop: 12,
+              }}
+            >
+              <Button
+                color="#cccccc"
+                title="Hủy"
+                onPress={() => setShowReasonInput(false)}
+              />
+              <View style={{ width: 12 }} />
+              <Button
+                color="#16F2A8"
+                title="Tạo kế hoạch"
+                onPress={handleCreatePlan}
+                disabled={!reason.trim()}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -186,6 +407,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FAFAFC",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   hero: {
     paddingHorizontal: 28,
@@ -266,7 +488,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     marginHorizontal: 28,
     marginBottom: 6,
-    marginTop: 2,
+    marginTop: 20, // Tăng khoảng cách từ phần trên
     color: "#0CA678",
     fontWeight: "700",
     fontSize: 17,
@@ -336,5 +558,103 @@ const styles = StyleSheet.create({
     fontSize: 13.1,
     color: "#16a37a",
     fontWeight: "600",
+  },
+  feedbacksSection: {
+    marginHorizontal: 20,
+    marginTop: 10,
+  },
+  feedbackCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  feedbackHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  ratingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  feedbackRating: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFB936",
+    marginLeft: 4,
+  },
+  feedbackUser: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#4a5568",
+  },
+  feedbackContent: {
+    fontSize: 14.5,
+    color: "#2d3748",
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  feedbackDate: {
+    fontSize: 12,
+    color: "#718096",
+    textAlign: "right",
+  },
+  centeredFeedback: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  buttonWrapper: {
+    marginHorizontal: 28,
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  useButton: {
+    backgroundColor: "#16F2A8",
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: "center",
+    shadowColor: "#16F2A8",
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 16.5,
+    letterSpacing: 0.3,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    width: "100%",
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14.5,
+    minHeight: 80,
+    textAlignVertical: "top",
   },
 });

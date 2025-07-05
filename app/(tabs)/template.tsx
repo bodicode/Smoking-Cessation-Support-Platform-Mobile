@@ -9,6 +9,7 @@ import {
   Platform,
   StatusBar,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,15 +19,21 @@ import { getLevelColor, translateLevel } from "@/utils";
 import { useRouter } from "expo-router";
 import HomeHeader from "@/components/home/header";
 import { useAuth } from "@/contexts/AuthContext";
+import COLORS from "@/constants/Colors";
 
 export default function TemplateScreen() {
   const [templates, setTemplates] = useState<PlanTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { user } = useAuth();
+  const handleAuthButtonPress = () => {
+    router.push("/login");
+  };
 
   useEffect(() => {
-    fetchTemplates();
+    if (user) {
+      fetchTemplates();
+    }
   }, []);
 
   const fetchTemplates = async () => {
@@ -35,11 +42,40 @@ export default function TemplateScreen() {
       const res = await PlanTemplateService.getTemplates();
       setTemplates(res);
     } catch (err) {
-      console.log(err);
+      throw err;
     } finally {
       setLoading(false);
     }
   };
+
+  if (!user) {
+    return (
+      <View style={styles.unauthenticatedContainer}>
+        <Image
+          source={require("../../assets/images/logo.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+        <Text style={styles.unauthenticatedTitle}>
+          Chào mừng đến với ReAir - Hành trình cai thuốc của bạn!
+        </Text>
+        <Text style={styles.unauthenticatedSubtitle}>
+          Đăng nhập hoặc đăng ký để xem các kế hoạch cai thuốc lá và theo dõi
+          tiến trình của bạn.
+        </Text>
+        <TouchableOpacity
+          style={styles.authButton}
+          activeOpacity={0.8}
+          onPress={handleAuthButtonPress}
+        >
+          <Text style={styles.authButtonText}>Đăng nhập / Đăng ký</Text>
+        </TouchableOpacity>
+        <Text style={styles.unauthenticatedDisclaimer}>
+          ReAir sẽ giúp bạn trên con đường từ bỏ thuốc lá.
+        </Text>
+      </View>
+    );
+  }
 
   if (loading)
     return (
@@ -72,7 +108,6 @@ export default function TemplateScreen() {
           <PlanTemplateCard
             template={item}
             onPress={() =>
-              // Expo Router điều hướng tới template/[id]
               router.push({
                 pathname: "/template/[id]",
                 params: { id: item.id },
@@ -204,6 +239,58 @@ function PlanTemplateCard({ template, onPress }: PlanTemplateCardProps) {
 }
 
 const styles = StyleSheet.create({
+  unauthenticatedContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.light.BG,
+    paddingHorizontal: 30,
+    paddingBottom: 50,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
+  },
+  unauthenticatedTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: COLORS.light.TEXT,
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  unauthenticatedSubtitle: {
+    fontSize: 16,
+    color: COLORS.light.SUBTEXT,
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  authButton: {
+    backgroundColor: COLORS.light.CALL_TO_ACTION,
+    borderRadius: 30,
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    shadowColor: COLORS.light.CALL_TO_ACTION,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  authButtonText: {
+    color: COLORS.light.WHITE,
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  unauthenticatedDisclaimer: {
+    fontSize: 12,
+    color: COLORS.light.SUBTEXT,
+    textAlign: "center",
+    marginTop: 20,
+    opacity: 0.7,
+  },
+
   safeArea: {
     backgroundColor: "#F0F4FA",
   },
@@ -223,14 +310,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     marginBottom: 20,
-    // shadow for iOS
+
     shadowColor: "#000",
     shadowOpacity: 0.09,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 2 },
-    // shadow for Android
+
     elevation: 5,
-    // border for visual highlight
+
     borderWidth: 1,
     borderColor: "#e7ecef",
   },
