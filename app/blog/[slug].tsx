@@ -58,7 +58,6 @@ export default function BlogDetailScreen() {
       contentContainerStyle={{ paddingBottom: 36 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Cover image */}
       {blog.cover_image && (
         <Image
           source={{ uri: blog.cover_image }}
@@ -68,9 +67,7 @@ export default function BlogDetailScreen() {
       )}
 
       <View style={styles.contentWrapper}>
-        {/* Title */}
         <Text style={styles.title}>{blog.title}</Text>
-        {/* Author row */}
         <View style={styles.authorRow}>
           {blog.author?.avatar_url ? (
             <Image
@@ -98,7 +95,6 @@ export default function BlogDetailScreen() {
 
         <View style={styles.divider} />
 
-        {/* Content */}
         <HTMLView
           value={blog.content}
           stylesheet={{

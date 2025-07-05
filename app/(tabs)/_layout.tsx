@@ -1,9 +1,13 @@
 import { Tabs } from "expo-router";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import COLORS from "@/constants/Colors";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { PlanCountProvider, usePlanCount } from "@/contexts/PlanContext";
 
-export default function TabLayout() {
+function RootLayoutContent() {
+  const { planCount, loadingPlansCount } = usePlanCount();
+
   return (
     <Tabs
       screenOptions={{
@@ -26,7 +30,7 @@ export default function TabLayout() {
             <MaterialCommunityIcons
               name="view-grid-outline"
               size={28}
-              color={focused ? COLORS.light.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : COLORS.light.INACTIVE}
             />
           ),
         }}
@@ -40,7 +44,7 @@ export default function TabLayout() {
             <Feather
               name="bookmark"
               size={24}
-              color={focused ? COLORS.light.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : COLORS.light.INACTIVE}
             />
           ),
         }}
@@ -69,7 +73,20 @@ export default function TabLayout() {
                 elevation: 6,
               }}
             >
-              <Feather name="plus" size={34} color={COLORS.light.PLUS_ICON} />
+              {loadingPlansCount ? (
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.light.PLUS_ICON}
+                />
+              ) : planCount === 0 ? (
+                <Feather name="plus" size={34} color={COLORS.light.PLUS_ICON} />
+              ) : (
+                <Ionicons
+                  name="create-outline"
+                  size={30}
+                  color={COLORS.light.PLUS_ICON}
+                />
+              )}
             </View>
           ),
           tabBarLabel: () => null,
@@ -84,7 +101,7 @@ export default function TabLayout() {
             <Ionicons
               name="chatbubble-ellipses-outline"
               size={27}
-              color={focused ? COLORS.light.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : COLORS.light.INACTIVE}
             />
           ),
         }}
@@ -98,11 +115,21 @@ export default function TabLayout() {
             <Ionicons
               name="compass-outline"
               size={27}
-              color={focused ? COLORS.light.ACTIVE : "#fff"}
+              color={focused ? COLORS.light.ACTIVE : COLORS.light.INACTIVE}
             />
           ),
         }}
       />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <AuthProvider>
+      <PlanCountProvider>
+        <RootLayoutContent />
+      </PlanCountProvider>
+    </AuthProvider>
   );
 }
