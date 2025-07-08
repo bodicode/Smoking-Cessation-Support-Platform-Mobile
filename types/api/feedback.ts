@@ -25,6 +25,7 @@ export interface IUser {
   id: string;
   name: string;
   role: string;
+  avatar_url: string;
 }
 
 export interface IFeedback {
@@ -45,3 +46,15 @@ export interface IGetFeedbacksVariables {
 }
 
 export type IFeedbacksData = IFeedback[];
+
+export interface ICreateFeedbackInput {
+  rating: number;
+  content: string;
+  template_id: string;
+  is_anonymous?: boolean;
+}
+export interface IUpdateFeedbackInput {
+  rating?: number;
+  content?: string;
+  is_anonymous?: boolean;
+}

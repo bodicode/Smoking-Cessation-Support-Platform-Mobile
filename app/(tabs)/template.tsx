@@ -5,11 +5,11 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  ScrollView,
   Platform,
   StatusBar,
   TouchableOpacity,
   Image,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,6 +26,7 @@ export default function TemplateScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { user } = useAuth();
+
   const handleAuthButtonPress = () => {
     router.push("/login");
   };
@@ -33,8 +34,10 @@ export default function TemplateScreen() {
   useEffect(() => {
     if (user) {
       fetchTemplates();
+    } else {
+      setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const fetchTemplates = async () => {
     setLoading(true);
@@ -42,7 +45,7 @@ export default function TemplateScreen() {
       const res = await PlanTemplateService.getTemplates();
       setTemplates(res);
     } catch (err) {
-      throw err;
+      console.error("Error fetching templates:", err);
     } finally {
       setLoading(false);
     }
@@ -50,30 +53,32 @@ export default function TemplateScreen() {
 
   if (!user) {
     return (
-      <View style={styles.unauthenticatedContainer}>
-        <Image
-          source={require("../../assets/images/logo.png")}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-        <Text style={styles.unauthenticatedTitle}>
-          Chào mừng đến với ReAir - Hành trình cai thuốc của bạn!
-        </Text>
-        <Text style={styles.unauthenticatedSubtitle}>
-          Đăng nhập hoặc đăng ký để xem các kế hoạch cai thuốc lá và theo dõi
-          tiến trình của bạn.
-        </Text>
-        <TouchableOpacity
-          style={styles.authButton}
-          activeOpacity={0.8}
-          onPress={handleAuthButtonPress}
-        >
-          <Text style={styles.authButtonText}>Đăng nhập / Đăng ký</Text>
-        </TouchableOpacity>
-        <Text style={styles.unauthenticatedDisclaimer}>
-          ReAir sẽ giúp bạn trên con đường từ bỏ thuốc lá.
-        </Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.unauthenticatedContainer}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.unauthenticatedTitle}>
+            Chào mừng đến với ReAir - Hành trình cai thuốc của bạn!
+          </Text>
+          <Text style={styles.unauthenticatedSubtitle}>
+            Đăng nhập hoặc đăng ký để xem các kế hoạch cai thuốc lá và theo dõi
+            tiến trình của bạn.
+          </Text>
+          <TouchableOpacity
+            style={styles.authButton}
+            activeOpacity={0.8}
+            onPress={handleAuthButtonPress}
+          >
+            <Text style={styles.authButtonText}>Đăng nhập / Đăng ký</Text>
+          </TouchableOpacity>
+          <Text style={styles.unauthenticatedDisclaimer}>
+            ReAir sẽ giúp bạn trên con đường từ bỏ thuốc lá.
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -92,18 +97,22 @@ export default function TemplateScreen() {
         <View style={styles.centered}>
           <Ionicons name="list-outline" size={48} color="#b6bdca" />
           <Text style={styles.empty}>Không có kế hoạch nào</Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={fetchTemplates}
+          >
+            <Ionicons name="refresh-outline" size={24} color="#16F2A8" />
+            <Text style={styles.refreshButtonText}>Thử lại</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
 
   return (
     <View style={styles.safeArea}>
-      <HomeHeader user={user} />
-
       <FlatList
         data={templates}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 18, paddingBottom: 40 }}
         renderItem={({ item }) => (
           <PlanTemplateCard
             template={item}
@@ -116,6 +125,14 @@ export default function TemplateScreen() {
           />
         )}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={() => (
+          <View>
+            <HomeHeader user={user} />
+            <Text style={styles.sectionHeader}>Các mẫu kế hoạch cai thuốc</Text>
+          </View>
+        )}
+        ListFooterComponent={() => <View style={{ height: 40 }} />}
+        style={{ paddingHorizontal: 18 }}
       />
     </View>
   );
@@ -131,8 +148,9 @@ function PlanTemplateCard({ template, onPress }: PlanTemplateCardProps) {
     <TouchableOpacity
       activeOpacity={0.91}
       onPress={onPress}
-      style={{ marginBottom: 0 }}
+      style={{ marginBottom: 20 }}
     >
+      {/* Giữ ScrollView này vì nó cuộn ngang, không xung đột với FlatList cha */}
       <View style={styles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.name}>{template.name}</Text>
@@ -292,12 +310,14 @@ const styles = StyleSheet.create({
   },
 
   safeArea: {
-    backgroundColor: "#F0F4FA",
+    flex: 1,
+    backgroundColor: COLORS.light.BG,
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.light.BG,
   },
   empty: {
     marginTop: 16,
@@ -305,11 +325,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    backgroundColor: COLORS.light.grey,
+  },
+  refreshButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#16F2A8",
+  },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.light.CARD_BG,
     borderRadius: 18,
     padding: 18,
-    marginBottom: 20,
 
     shadowColor: "#000",
     shadowOpacity: 0.09,
@@ -319,7 +353,7 @@ const styles = StyleSheet.create({
     elevation: 5,
 
     borderWidth: 1,
-    borderColor: "#e7ecef",
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
   },
   headerRow: {
     flexDirection: "row",
@@ -330,14 +364,14 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: "700",
     fontSize: 19,
-    color: "#233264",
+    color: COLORS.light.TEXT,
     letterSpacing: 0.2,
     flex: 1,
   },
   level: {
     fontSize: 13,
-    backgroundColor: "#E3F6F1",
-    color: "#16F2A8",
+    backgroundColor: COLORS.light.PRIMARY_BLUE_LIGHT,
+
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -346,7 +380,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   desc: {
-    color: "#555",
+    color: COLORS.light.SUBTEXT,
     marginTop: 4,
     marginBottom: 10,
     fontSize: 15,
@@ -362,7 +396,7 @@ const styles = StyleSheet.create({
   },
   info: {
     fontSize: 13.5,
-    color: "#495467",
+    color: COLORS.light.DARK_GREY_TEXT,
     marginLeft: 4,
     fontWeight: "500",
   },
@@ -371,11 +405,11 @@ const styles = StyleSheet.create({
     maxWidth: 210,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: "#f4fbf7",
+    backgroundColor: COLORS.light.PRIMARY_GREEN_LIGHT,
     marginRight: 10,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: "#e1e7ef",
+    borderColor: COLORS.light.BORDER_GREY,
     shadowColor: "#16F2A8",
     shadowOpacity: 0.05,
     shadowRadius: 5,
@@ -385,27 +419,35 @@ const styles = StyleSheet.create({
   stageTitle: {
     fontWeight: "700",
     fontSize: 14.5,
-    color: "#16a37a",
+    color: COLORS.light.PRIMARY_GREEN_DARK,
     marginBottom: 2,
     letterSpacing: 0.1,
   },
   stageDesc: {
-    color: "#617080",
+    color: COLORS.light.SUBTEXT,
     fontSize: 13,
     marginTop: 1,
     marginBottom: 1,
     fontWeight: "400",
   },
   stageAction: {
-    color: "#3172ea",
+    color: COLORS.light.PRIMARY_BLUE_DARK,
     fontSize: 13,
     marginTop: 1,
     marginBottom: 1,
   },
   stageDuration: {
     fontSize: 13,
-    color: "#16a37a",
+    color: COLORS.light.PRIMARY_GREEN_DARK,
     marginTop: 2,
     fontWeight: "600",
+  },
+  sectionHeader: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: COLORS.light.TEXT,
+    paddingHorizontal: 18,
+    marginTop: 10,
+    marginBottom: 10,
   },
 });
