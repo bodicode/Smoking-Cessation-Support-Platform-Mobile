@@ -21,9 +21,9 @@ import { PlanTemplate } from "@/types/api/template";
 import { PlanTemplateService } from "@/services/templatePlanService";
 import { getLevelColor, translateLevel } from "@/utils";
 import { IFeedback } from "@/types/api/feedback";
-import { getFeedbacks } from "@/services/feedbackService";
 import { CessationPlanService } from "@/services/myPlanService";
 import Toast from "react-native-toast-message";
+import { FeedbackService } from "@/services/feedbackService";
 
 const { width } = Dimensions.get("window");
 
@@ -58,12 +58,11 @@ export default function PlanTemplateDetailScreen() {
     const fetchFeedbacksForTemplate = async () => {
       try {
         setFeedbackLoading(true);
-        const data = await getFeedbacks(
+        const data = await FeedbackService.getFeedbacks(
           id ? { filters: { templateId: id } } : {}
         );
         setFeedbacks(data);
       } catch (error: any) {
-        console.error("Lỗi khi tải feedbacks:", error);
         setFeedbackError(error.message || "Không thể tải phản hồi.");
       } finally {
         setFeedbackLoading(false);

@@ -22,6 +22,11 @@ import ProgressCharts from "@/components/home/ProcessChart";
 import ProgressRecordForm from "@/components/plan/ProgressRecordForm";
 import Toast from "react-native-toast-message";
 import { useProgress } from "@/contexts/ProgressRecordContext";
+import { useFocusEffect } from "@react-navigation/native";
+import {
+  HEALTH_MILESTONES,
+  IHealthMilestone,
+} from "@/types/api/healthMilestones";
 
 interface IProgressStats {
   days: number;
@@ -69,10 +74,50 @@ export default function HomeScreen() {
   const initialDailyCigarettes = 20;
   const costPerCigarette = 50000 / 20;
 
-  const handleLogoutAndRedirectToLogin = useCallback(() => {
-    logout();
-    router.replace("/login");
-  }, [logout, router]);
+  const achievedMilestones = useMemo(() => {
+    if (!activePlan || !activePlan.start_date) {
+      return [];
+    }
+
+    const startDate = new Date(activePlan.start_date);
+    const now = currentTime;
+
+    const achieved: IHealthMilestone[] = [];
+
+    HEALTH_MILESTONES.forEach((milestone) => {
+      let milestoneDate: Date;
+      const [value, unit] = milestone.timeframe.split(" ");
+      const numValue = parseInt(value);
+
+      milestoneDate = new Date(startDate);
+
+      switch (unit) {
+        case "phút":
+          milestoneDate.setMinutes(milestoneDate.getMinutes() + numValue);
+          break;
+        case "giờ":
+          milestoneDate.setHours(milestoneDate.getHours() + numValue);
+          break;
+        case "ngày":
+          milestoneDate.setDate(milestoneDate.getDate() + numValue);
+          break;
+        case "tuần":
+          milestoneDate.setDate(milestoneDate.getDate() + numValue * 7);
+          break;
+        case "năm":
+          milestoneDate.setFullYear(milestoneDate.getFullYear() + numValue);
+          break;
+        default:
+          break;
+      }
+
+      if (now.getTime() >= milestoneDate.getTime()) {
+        achieved.push(milestone);
+      }
+    });
+
+    return achieved;
+  }, [activePlan, currentTime]);
 
   const handleAuthButtonPress = useCallback(() => {
     router.push("/login");
@@ -85,6 +130,12 @@ export default function HomeScreen() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshData();
+    }, [refreshData])
+  );
 
   const { days, hours, minutes, seconds, moneySaved, cigarettesSmokedAgain } =
     useMemo<IProgressStats>(() => {
@@ -277,32 +328,14 @@ export default function HomeScreen() {
     setIsFormModalVisible(false);
     setSelectedRecordForEdit(undefined);
     setSelectedDateForNewRecord(undefined);
+
+    await refreshData();
   };
 
   const handleFormCancel = () => {
     setIsFormModalVisible(false);
     setSelectedRecordForEdit(undefined);
     setSelectedDateForNewRecord(undefined);
-  };
-
-  const handleDeleteRecord = async (recordId: string) => {
-    try {
-      console.log(`Đang xóa bản ghi với ID: ${recordId}`);
-
-      await refreshData();
-      Toast.show({
-        type: "success",
-        text1: "Xóa thành công!",
-        text2: "Bản ghi đã được xóa.",
-      });
-    } catch (deleteError: any) {
-      Toast.show({
-        type: "error",
-        text1: "Lỗi xóa bản ghi!",
-        text2: "Không thể xóa bản ghi. Vui lòng thử lại.",
-      });
-      console.error("Error deleting record:", deleteError);
-    }
   };
 
   if (loading && user?.id) {
@@ -530,6 +563,52 @@ export default function HomeScreen() {
           </View>
 
           <ProgressCharts records={progressRecords} />
+
+          {activePlan && achievedMilestones.length > 0 && (
+            <View style={styles.healthMilestonesContainer}>
+              <Text style={styles.healthMilestonesTitle}>
+                Sức khỏe của bạn đang cải thiện! 🎉
+              </Text>
+              {achievedMilestones.map((milestone, index) => (
+                <View key={milestone.id} style={styles.milestoneItem}>
+                  <Ionicons
+                    name={milestone.iconName as any}
+                    size={24}
+                    color={milestone.iconColor}
+                    style={styles.milestoneIcon}
+                  />
+                  <View style={styles.milestoneContent}>
+                    <Text style={styles.milestoneTimeframe}>
+                      Sau {milestone.timeframe}
+                    </Text>
+                    <Text style={styles.milestoneDescription}>
+                      {milestone.description}
+                    </Text>
+                  </View>
+                  {index < achievedMilestones.length - 1 && (
+                    <View style={styles.milestoneConnector} />
+                  )}
+                </View>
+              ))}
+              <View style={styles.overallProgressBarContainer}>
+                <View
+                  style={[
+                    styles.overallProgressBarFill,
+                    {
+                      width: `${
+                        (achievedMilestones.length / HEALTH_MILESTONES.length) *
+                        100
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.overallProgressText}>
+                Bạn đã đạt {achievedMilestones.length} /{" "}
+                {HEALTH_MILESTONES.length} mốc sức khỏe!
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -985,5 +1064,79 @@ const styles = StyleSheet.create({
   },
   dailyDayTextBeforePlan: {
     color: COLORS.light.SUBTEXT,
+  },
+  healthMilestonesContainer: {
+    marginTop: 20,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.light.BORDER_LIGHT_GREY,
+    backgroundColor: COLORS.light.BACKGROUND,
+    borderRadius: 12,
+    padding: 15,
+  },
+  healthMilestonesTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.light.TEXT,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  milestoneItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 15,
+    paddingHorizontal: 5,
+    position: "relative",
+  },
+  milestoneIcon: {
+    marginRight: 15,
+    width: 30,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  milestoneContent: {
+    flex: 1,
+  },
+  milestoneTimeframe: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: COLORS.light.PRIMARY_BLUE_DARK,
+    marginBottom: 2,
+  },
+  milestoneDescription: {
+    fontSize: 14,
+    color: COLORS.light.DARK_GREY_TEXT,
+    lineHeight: 20,
+  },
+  milestoneConnector: {
+    position: "absolute",
+    left: 20,
+    top: 30,
+    bottom: -10,
+    width: 2,
+    backgroundColor: COLORS.light.BORDER_GREY,
+    zIndex: -1,
+  },
+  overallProgressBarContainer: {
+    height: 8,
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
+    borderRadius: 4,
+    marginTop: 20,
+    marginBottom: 10,
+    overflow: "hidden",
+    borderColor: COLORS.light.BORDER_GREY,
+    borderWidth: 1,
+  },
+  overallProgressBarFill: {
+    height: "100%",
+    backgroundColor: COLORS.light.PRIMARY_GREEN,
+    borderRadius: 4,
+  },
+  overallProgressText: {
+    fontSize: 13,
+    color: COLORS.light.SUBTEXT,
+    textAlign: "center",
+    marginBottom: 10,
+    fontWeight: "600",
   },
 });

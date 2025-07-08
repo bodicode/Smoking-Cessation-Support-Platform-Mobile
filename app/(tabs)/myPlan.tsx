@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   ICessationPlan,
   ICessationPlanFiltersInput,
@@ -22,6 +22,7 @@ import Toast from "react-native-toast-message";
 import COLORS from "@/constants/Colors";
 import PlanCard from "@/components/plan/PlanCard";
 import StageModalForm from "@/components/plan/StageModalForm";
+import FeedbackManage from "@/components/plan/FeedbackManage";
 
 export default function CessationPlanListScreen() {
   const [plans, setPlans] = useState<ICessationPlan[]>([]);
@@ -282,6 +283,43 @@ export default function CessationPlanListScreen() {
     setShowCreateModal(true);
   };
 
+  const EmptyPlanListComponent = () => (
+    <View style={styles.centeredContent}>
+      <Ionicons
+        name="document-text-outline"
+        size={70}
+        color={COLORS.light.SECONDARY_TEXT}
+      />
+      <Text style={styles.emptyText}>Bạn chưa có kế hoạch nào.</Text>
+      <Text style={styles.emptySubText}>
+        Hãy tạo một kế hoạch mới để bắt đầu hành trình cai thuốc của bạn!
+      </Text>
+      <TouchableOpacity
+        style={styles.createPlanButton}
+        onPress={() => router.push("/(tabs)/template")}
+      >
+        <Ionicons
+          name="add-circle-outline"
+          size={24}
+          color={COLORS.light.WHITE}
+        />
+        <Text style={styles.createPlanButtonText}>Tạo kế hoạch mới</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const ListFooter = () => {
+    if (plans.length > 0 && plans[0]?.id) {
+      return (
+        <View style={styles.feedbackManagerContainer}>
+          <Text style={styles.feedbackSectionTitle}>Phản hồi về kế hoạch</Text>
+          <FeedbackManage templateId={plans[0].template.id} />
+        </View>
+      );
+    }
+    return null;
+  };
+
   return (
     <View style={styles.container}>
       <HomeHeader user={user} />
@@ -348,39 +386,10 @@ export default function CessationPlanListScreen() {
             />
           )}
           showsVerticalScrollIndicator={false}
-          ListEmptyComponent={() => (
-            <View style={styles.centeredContent}>
-              <Ionicons
-                name="document-text-outline"
-                size={70}
-                color={COLORS.light.SECONDARY_TEXT}
-              />
-              <Text style={styles.emptyText}>Bạn chưa có kế hoạch nào.</Text>
-              <Text style={styles.emptySubText}>
-                Hãy tạo một kế hoạch mới để bắt đầu hành trình cai thuốc của
-                bạn!
-              </Text>
-              <TouchableOpacity
-                style={styles.createPlanButton}
-                onPress={() => router.push("/(tabs)/template")}
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={24}
-                  color={COLORS.light.WHITE}
-                />
-                <Text style={styles.createPlanButtonText}>
-                  Tạo kế hoạch mới
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          contentContainerStyle={
-            plans.length === 0
-              ? styles.emptyListContainer
-              : styles.fullListContainer
-          }
-          style={styles.fullScreenFlatList}
+          ListEmptyComponent={EmptyPlanListComponent}
+          ListFooterComponent={ListFooter}
+          contentContainerStyle={styles.fullListContainer}
+          style={styles.flatList}
         />
       )}
 
@@ -413,6 +422,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.light.BACKGROUND,
   },
+
   centered: {
     flex: 1,
     justifyContent: "center",
@@ -494,9 +504,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 20,
   },
-  fullScreenFlatList: {
+
+  flatList: {
     flex: 1,
-    paddingTop: 10,
   },
   emptyListContainer: {
     flexGrow: 1,
@@ -552,5 +562,17 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "bold",
     marginLeft: 12,
+  },
+  feedbackManagerContainer: {
+    marginTop: 30,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  feedbackSectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.light.DARK_TEXT,
+    marginBottom: 15,
+    textAlign: "center",
   },
 });

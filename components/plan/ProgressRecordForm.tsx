@@ -159,7 +159,7 @@ export default function ProgressRecordForm({
         editable={!isSubmitting}
       />
 
-      <Text style={styles.label}>Ghi chú (Không bắt buộc)</Text>
+      <Text style={styles.label}>Ghi chú</Text>
       <TextInput
         value={notes}
         onChangeText={setNotes}

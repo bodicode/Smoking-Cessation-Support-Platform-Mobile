@@ -19,6 +19,7 @@ export const GET_FEEDBACKS_QUERY = gql`
           id
           name
           role
+          avatar_url
         }
         template {
           id

@@ -58,7 +58,6 @@ export default function ProgressRecordsList({
       });
       setRecords(data || []);
     } catch (e: any) {
-      console.error("Error fetching progress records:", e);
       setError("Không thể tải bản ghi. Vui lòng thử lại.");
       Toast.show({ type: "error", text1: "Không thể tải bản ghi" });
     } finally {
