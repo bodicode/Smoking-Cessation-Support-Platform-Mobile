@@ -3,6 +3,7 @@ export type User = {
   email: string;
   points?: number;
   avatarUrl?: string;
+  name?: string;
   user_metadata?: {
     name?: string;
   };

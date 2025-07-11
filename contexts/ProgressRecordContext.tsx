@@ -91,7 +91,6 @@ export const ProgressProvider = ({
         setProgressRecords([]);
       }
     } catch (err: any) {
-      console.error("Error refreshing progress data:", err);
       if (err.message?.includes("Invalid or expired token")) {
         logout();
         setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
