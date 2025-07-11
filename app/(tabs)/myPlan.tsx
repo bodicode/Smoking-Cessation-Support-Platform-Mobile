@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
+  Platform, // Import Platform
+  StatusBar, // Import StatusBar
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -22,7 +24,9 @@ import Toast from "react-native-toast-message";
 import COLORS from "@/constants/Colors";
 import PlanCard from "@/components/plan/PlanCard";
 import StageModalForm from "@/components/plan/StageModalForm";
-import FeedbackManage from "@/components/plan/FeedbackManage";
+// import FeedbackManage from "@/components/plan/FeedbackManage"; // Đã bỏ import này
+import ChatBubbleRN from "@/components/plan/ChatBubble";
+import UserFeedbackSection from "@/components/plan/UserFeedbackSection";
 
 export default function CessationPlanListScreen() {
   const [plans, setPlans] = useState<ICessationPlan[]>([]);
@@ -70,20 +74,29 @@ export default function CessationPlanListScreen() {
     }
   }, [currentUserId]);
 
-  useEffect(() => {
-    if (currentUserId) {
-      fetchCessationPlans();
-    } else {
-      setLoading(false);
-    }
-  }, [currentUserId, plans]);
+  // Use useFocusEffect for fetching data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUserId) {
+        fetchCessationPlans();
+      } else {
+        setLoading(false);
+      }
+    }, [currentUserId, fetchCessationPlans]) // Add fetchCessationPlans to dependencies
+  );
 
   const handleLoginPress = () => {
     router.push("/(auth)/login");
   };
 
+  // Hàm này để gọi lại fetch plans khi feedback thay đổi
+  const handleFeedbackChange = useCallback(() => {
+    fetchCessationPlans();
+  }, [fetchCessationPlans]);
+
   const toISOString = (dateStr: string) => {
     if (!dateStr) return "";
+    // Đảm bảo định dạng ngày là YYYY-MM-DD để tạo ISO string chính xác
     return new Date(dateStr + "T00:00:00.000Z").toISOString();
   };
 
@@ -158,7 +171,7 @@ export default function CessationPlanListScreen() {
         stage_order: 0,
       });
       setEditingStageId(null);
-      fetchCessationPlans();
+      fetchCessationPlans(); // Re-fetch plans to update UI
     } catch (err: any) {
       setShowCreateModal(false);
       const message =
@@ -190,9 +203,8 @@ export default function CessationPlanListScreen() {
               type: "success",
               text1: "Đã xoá giai đoạn thành công",
             });
-            fetchCessationPlans();
+            fetchCessationPlans(); // Re-fetch plans to update UI
           } catch (err) {
-            console.error("Lỗi xoá giai đoạn:", err);
             Toast.show({ type: "error", text1: "Không thể xoá giai đoạn" });
           } finally {
             setLoading(false);
@@ -219,10 +231,9 @@ export default function CessationPlanListScreen() {
         id: planId,
         status: newStatus,
       });
-      fetchCessationPlans();
+      fetchCessationPlans(); // Re-fetch plans to update UI
       Toast.show({ type: "success", text1: "Cập nhật trạng thái thành công" });
     } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái:", error);
       setError("Không thể cập nhật trạng thái kế hoạch.");
       Toast.show({ type: "error", text1: "Cập nhật trạng thái thất bại" });
     } finally {
@@ -241,10 +252,9 @@ export default function CessationPlanListScreen() {
         id: stageId,
         status: newStatus,
       });
-      fetchCessationPlans();
+      fetchCessationPlans(); // Re-fetch plans to update UI
       Toast.show({ type: "success", text1: "Cập nhật trạng thái thành công" });
     } catch (err: any) {
-      console.error("Lỗi cập nhật trạng thái stage:", err);
       Alert.alert("Lỗi", "Không thể cập nhật trạng thái giai đoạn.");
       Toast.show({
         type: "error",
@@ -313,7 +323,11 @@ export default function CessationPlanListScreen() {
       return (
         <View style={styles.feedbackManagerContainer}>
           <Text style={styles.feedbackSectionTitle}>Phản hồi về kế hoạch</Text>
-          <FeedbackManage templateId={plans[0].template.id} />
+          <UserFeedbackSection
+            templateId={plans[0].template.id}
+            user={user}
+            onFeedbackChange={handleFeedbackChange}
+          />
         </View>
       );
     }
@@ -323,7 +337,6 @@ export default function CessationPlanListScreen() {
   return (
     <View style={styles.container}>
       <HomeHeader user={user} />
-
       {loading && !plans.length ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={COLORS.light.PRIMARY} />
@@ -392,7 +405,6 @@ export default function CessationPlanListScreen() {
           style={styles.flatList}
         />
       )}
-
       <StageModalForm
         visible={showCreateModal}
         onClose={() => {
@@ -413,6 +425,7 @@ export default function CessationPlanListScreen() {
         stageInput={stageInput}
         setStageInput={setStageInput}
       />
+      <ChatBubbleRN />
     </View>
   );
 }

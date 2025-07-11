@@ -111,7 +111,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
           text2: error.message || "Không thể gửi feedback.",
         });
       }
-      onCancel()
+      onCancel();
     } finally {
       setIsSubmitting(false);
     }
@@ -152,7 +152,6 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
         editable={!isSubmitting}
       />
 
-      {/* Checkbox chỉ hiển thị khi tạo mới */}
       {!initialData && (
         <TouchableOpacity
           style={formStyles.checkboxContainer}
@@ -343,7 +342,6 @@ export default function FeedbackManage({ templateId }: { templateId: string }) {
                 });
                 fetchFeedbacks();
               } catch (e: any) {
-                console.error("Error deleting feedback:", e);
                 Toast.show({
                   type: "error",
                   text1: "Xoá thất bại",
@@ -385,7 +383,6 @@ export default function FeedbackManage({ templateId }: { templateId: string }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {/* Nút gửi/chỉnh sửa feedback */}
         {user && (
           <TouchableOpacity
             style={styles.createButton}
@@ -423,7 +420,6 @@ export default function FeedbackManage({ templateId }: { templateId: string }) {
             color={COLORS.light.SUBTEXT}
           />
           <Text style={styles.emptyStateText}>Chưa có feedback nào.</Text>
-          {/* Chỉ hiển thị subtext nếu người dùng chưa có feedback và có thể tạo */}
           {user && !hasUserFeedback && (
             <Text style={styles.emptyStateSubText}>
               Hãy là người đầu tiên gửi feedback!
@@ -434,70 +430,78 @@ export default function FeedbackManage({ templateId }: { templateId: string }) {
         <FlatList
           data={feedbacks}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.feedbackCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.userInfo}>
-                  {item.is_anonymous ? (
-                    <MaterialCommunityIcons
-                      name="incognito"
-                      size={28}
-                      color="#9e9e9e"
-                      style={styles.avatarFallback}
-                    />
-                  ) : item.user?.avatar_url ? (
-                    <Image
-                      source={{
-                        uri: item.user?.avatar_url,
-                      }}
-                      style={styles.avatar}
-                      onError={(e) =>
-                        console.log("Image load error:", e.nativeEvent.error)
-                      }
-                    />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="account"
-                      size={28}
-                      color="#bdbdbd"
-                      style={styles.avatarFallback}
-                    />
-                  )}
-                  <Text style={styles.userName}>
-                    {item.is_anonymous
-                      ? "Người dùng ẩn danh"
-                      : item.user?.name || "Người dùng"}
-                  </Text>
-                </View>
-                <View style={styles.ratingContainer}>
-                  <Ionicons
-                    name="star"
-                    size={16}
-                    color={COLORS.light.PRIMARY_YELLOW}
-                  />
-                  <Text style={styles.ratingText}>{item.rating}/5</Text>
-                </View>
-              </View>
-              <Text style={styles.content}>{item.content}</Text>
+          renderItem={({ item }) => {
+            const isMyFeedback = user && item.user?.id === user.id;
 
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={() => openEditModal(item)}>
-                  <Ionicons
-                    name="pencil"
-                    size={20}
-                    color={COLORS.light.PRIMARY_BLUE}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDeleteFeedback(item.id)}>
-                  <Ionicons
-                    name="trash"
-                    size={20}
-                    color={COLORS.light.PRIMARY_RED}
-                  />
-                </TouchableOpacity>
+            return (
+              <View style={styles.feedbackCard}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.userInfo}>
+                    {item.is_anonymous ? (
+                      <MaterialCommunityIcons
+                        name="incognito"
+                        size={28}
+                        color="#9e9e9e"
+                        style={styles.avatarFallback}
+                      />
+                    ) : item.user?.avatar_url ? (
+                      <Image
+                        source={{
+                          uri: item.user?.avatar_url,
+                        }}
+                        style={styles.avatar}
+                        onError={(e) =>
+                          console.log("Image load error:", e.nativeEvent.error)
+                        }
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="account"
+                        size={28}
+                        color="#bdbdbd"
+                        style={styles.avatarFallback}
+                      />
+                    )}
+                    <Text style={styles.userName}>
+                      {item.is_anonymous
+                        ? "Người dùng ẩn danh"
+                        : item.user?.name || "Người dùng"}
+                    </Text>
+                  </View>
+                  <View style={styles.ratingContainer}>
+                    <Ionicons
+                      name="star"
+                      size={16}
+                      color={COLORS.light.PRIMARY_YELLOW}
+                    />
+                    <Text style={styles.ratingText}>{item.rating}/5</Text>
+                  </View>
+                </View>
+                <Text style={styles.content}>{item.content}</Text>
+
+                {isMyFeedback && (
+                  <View style={styles.actions}>
+                    <TouchableOpacity onPress={() => openEditModal(item)}>
+                      <Ionicons
+                        name="pencil"
+                        size={20}
+                        color={COLORS.light.PRIMARY_BLUE}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteFeedback(item.id)}
+                    >
+                      <Ionicons
+                        name="trash"
+                        size={20}
+                        color={COLORS.light.PRIMARY_RED}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            </View>
-          )}
+            );
+          }}
           contentContainerStyle={styles.flatListContent}
         />
       )}

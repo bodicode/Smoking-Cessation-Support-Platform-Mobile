@@ -102,7 +102,6 @@ export default function ProgressRecordsList({
         onRecordsUpdated();
       }
     } catch (e) {
-      console.error("Error deleting record:", e);
       Toast.show({
         type: "error",
         text1: "Xoá thất bại",

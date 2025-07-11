@@ -21,9 +21,19 @@ import HomeHeader from "@/components/home/header";
 import { useAuth } from "@/contexts/AuthContext";
 import COLORS from "@/constants/Colors";
 
+// Định nghĩa các mức độ lọc và giá trị tương ứng từ API
+const filterLevels = [
+  { label: "Tất cả", value: "all" },
+  { label: "Dễ", value: "EASY" },
+  { label: "Trung bình", value: "MEDIUM" },
+  { label: "Khó", value: "HARD" },
+];
+
 export default function TemplateScreen() {
   const [templates, setTemplates] = useState<PlanTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  // BỘ LỌC MỚI: Thêm state để lưu mức độ đã chọn
+  const [selectedFilter, setSelectedFilter] = useState("all");
   const router = useRouter();
   const { user } = useAuth();
 
@@ -50,6 +60,13 @@ export default function TemplateScreen() {
       setLoading(false);
     }
   };
+
+  const filteredTemplates =
+    selectedFilter === "all"
+      ? templates
+      : templates.filter(
+          (template) => template.difficulty_level === selectedFilter
+        );
 
   if (!user) {
     return (
@@ -111,7 +128,7 @@ export default function TemplateScreen() {
   return (
     <View style={styles.safeArea}>
       <FlatList
-        data={templates}
+        data={filteredTemplates}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <PlanTemplateCard
@@ -129,6 +146,34 @@ export default function TemplateScreen() {
           <View>
             <HomeHeader user={user} />
             <Text style={styles.sectionHeader}>Các mẫu kế hoạch cai thuốc</Text>
+            {/* BỘ LỌC MỚI: UI cho bộ lọc */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.filterContainer}
+              contentContainerStyle={{ paddingHorizontal: 18 }}
+            >
+              {filterLevels.map((level) => (
+                <TouchableOpacity
+                  key={level.value}
+                  style={[
+                    styles.filterButton,
+                    selectedFilter === level.value && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setSelectedFilter(level.value)}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedFilter === level.value &&
+                        styles.filterButtonTextActive,
+                    ]}
+                  >
+                    {level.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
         ListFooterComponent={() => <View style={{ height: 40 }} />}
@@ -150,7 +195,6 @@ function PlanTemplateCard({ template, onPress }: PlanTemplateCardProps) {
       onPress={onPress}
       style={{ marginBottom: 20 }}
     >
-      {/* Giữ ScrollView này vì nó cuộn ngang, không xung đột với FlatList cha */}
       <View style={styles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.name}>{template.name}</Text>
@@ -449,5 +493,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     marginTop: 10,
     marginBottom: 10,
+  },
+  // BỘ LỌC MỚI: Thêm styles cho bộ lọc
+  filterContainer: {
+    marginBottom: 10,
+    paddingBottom: 5, // Để không bị cắt shadow
+  },
+  filterButton: {
+    backgroundColor: COLORS.light.CARD_BG,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: COLORS.light.BORDER_GREY,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterButtonActive: {
+    backgroundColor: COLORS.light.BTN_BG,
+    borderColor: COLORS.light.BTN_BG,
+  },
+  filterButtonText: {
+    color: COLORS.light.TEXT,
+    fontWeight: "600",
+  },
+  filterButtonTextActive: {
+    color: COLORS.light.WHITE,
   },
 });

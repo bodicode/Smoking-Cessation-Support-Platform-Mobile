@@ -124,7 +124,6 @@ export default function ProgressRecordForm({
       await refreshData();
       onSubmit(resultRecord);
     } catch (error: any) {
-      console.error("Lỗi khi gửi bản ghi:", error);
       Alert.alert("Lỗi", error.message || "Đã xảy ra lỗi khi lưu bản ghi.");
     } finally {
       setIsSubmitting(false);

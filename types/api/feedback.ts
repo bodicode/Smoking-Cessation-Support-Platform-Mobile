@@ -8,6 +8,7 @@ export interface IPaginationParamsInput {
 
 export interface IFeedbackFiltersInput {
   templateId?: string;
+  userId?: string;
 }
 
 export interface ICoach {

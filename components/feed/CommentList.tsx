@@ -73,7 +73,6 @@ const CommentInput = React.forwardRef<TextInput, CommentInputProps>(
           }
         }
       } catch (error) {
-        console.error("Error adding comment:", error);
         Toast.show({
           type: "error",
           text1: "Không thể thêm bình luận",
@@ -269,7 +268,6 @@ export default function CommentList({ postId }: CommentListProps) {
       setEditingComment(null);
       setEditedContent("");
     } catch (error) {
-      console.error("Error saving comment edit:", error);
       Toast.show({
         type: "error",
         text1: "Cập nhật thất bại",
@@ -306,7 +304,6 @@ export default function CommentList({ postId }: CommentListProps) {
                 throw new Error("Deletion response indicates failure.");
               }
             } catch (error) {
-              console.error("Failed to delete comment:", error);
               Toast.show({
                 type: "error",
                 text1: "Xóa thất bại",
