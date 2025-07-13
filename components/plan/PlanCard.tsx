@@ -352,7 +352,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
         </View>
       )}
 
-      {isExpanded && <ProgressRecordsList planId={plan.id} />}
+      {isExpanded && (
+        <ProgressRecordsList
+          planId={plan.id}
+          coachId={plan.template.coach_id}
+        />
+      )}
     </View>
   );
 };

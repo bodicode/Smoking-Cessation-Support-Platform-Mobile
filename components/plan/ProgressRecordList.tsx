@@ -21,10 +21,12 @@ export default function ProgressRecordsList({
   planId,
   refreshKey,
   onRecordsUpdated,
+  coachId,
 }: {
   planId: string;
   refreshKey?: number;
   onRecordsUpdated?: () => void;
+  coachId: string;
 }) {
   const [records, setRecords] = useState<IProgressRecord[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<IProgressRecord | null>(
@@ -258,6 +260,7 @@ export default function ProgressRecordsList({
               planId={planId}
               onSubmit={handleFormSubmissionSuccess}
               onCancel={() => setModalVisible(false)}
+              coachId={coachId}
             />
           </View>
         </TouchableOpacity>

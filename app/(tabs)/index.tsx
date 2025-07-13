@@ -630,6 +630,7 @@ export default function HomeScreen() {
               prefillDate={selectedDateForNewRecord}
               onSubmit={handleFormSubmit}
               onCancel={handleFormCancel}
+               coachId={activePlan?.template.coach_id}
             />
           </View>
         </TouchableOpacity>
