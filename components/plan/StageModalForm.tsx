@@ -38,7 +38,6 @@ const StageModalForm: React.FC<StageModalFormProps> = ({
   setStageInput,
 }) => {
   const handleInternalSubmit = () => {
-    // Basic validation before submitting
     if (
       !stageInput.title ||
       !stageInput.start_date ||

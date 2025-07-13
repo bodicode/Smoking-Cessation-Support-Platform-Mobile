@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   FlatList,
   Alert,
-  Platform, // Import Platform
-  StatusBar, // Import StatusBar
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -24,7 +22,6 @@ import Toast from "react-native-toast-message";
 import COLORS from "@/constants/Colors";
 import PlanCard from "@/components/plan/PlanCard";
 import StageModalForm from "@/components/plan/StageModalForm";
-// import FeedbackManage from "@/components/plan/FeedbackManage"; // Đã bỏ import này
 import ChatBubbleRN from "@/components/plan/ChatBubble";
 import UserFeedbackSection from "@/components/plan/UserFeedbackSection";
 
