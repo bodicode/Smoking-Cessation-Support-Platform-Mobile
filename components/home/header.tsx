@@ -22,6 +22,13 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress }) => {
     if (user) router.push("/profile");
   };
 
+  const handleCrownPress = () => {
+    router.push("/membership");
+    if (onCrownPress) {
+      onCrownPress();
+    }
+  };
+
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
       <View style={styles.headerContainer}>
@@ -67,7 +74,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress }) => {
         </View>
         <TouchableOpacity
           style={styles.crownBtn}
-          onPress={onCrownPress}
+          onPress={handleCrownPress}
           activeOpacity={0.85}
         >
           <MaterialCommunityIcons name="crown-outline" size={28} color="#fff" />
