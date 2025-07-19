@@ -4,7 +4,7 @@ import {
   IUpdateProgressRecordInput,
 } from "@/types/api/processRecord";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -13,11 +13,15 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from "react-native";
 import COLORS from "@/constants/Colors";
 import { ProgressRecordService } from "@/services/processRecordService";
 import Toast from "react-native-toast-message";
 import { useProgress } from "@/contexts/ProgressRecordContext";
+import { useHealthScoreCriteria } from "@/services/healthScoreCriteria";
+import { AntDesign } from "@expo/vector-icons";
 
 interface ProgressRecordFormProps {
   initialData?: IProgressRecord;
@@ -25,7 +29,29 @@ interface ProgressRecordFormProps {
   prefillDate?: Date;
   onSubmit: (record: IProgressRecord) => void;
   onCancel?: () => void;
+  coachId?: string;
 }
+
+interface HealthCriteriaItem {
+  id: string;
+  title: string;
+  description: string;
+  coach_id: string;
+}
+
+const htmlToListTextForDisplay = (htmlString: string): string => {
+  if (!htmlString) return "";
+
+  let plainText = htmlString.replace(/<li>/g, "- ").replace(/<\/li>/g, "\n");
+
+  plainText = plainText.replace(/<[^>]*>/g, "");
+
+  return plainText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+};
 
 export default function ProgressRecordForm({
   initialData,
@@ -33,6 +59,7 @@ export default function ProgressRecordForm({
   prefillDate,
   onSubmit,
   onCancel,
+  coachId,
 }: ProgressRecordFormProps) {
   const { refreshData } = useProgress();
 
@@ -40,6 +67,13 @@ export default function ProgressRecordForm({
   const [healthScore, setHealthScore] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+
+  const {
+    criteriaList,
+    loading: criteriaLoading,
+    error: criteriaError,
+  } = useHealthScoreCriteria(coachId || "");
 
   const isEditing = !!initialData;
 
@@ -124,7 +158,6 @@ export default function ProgressRecordForm({
       await refreshData();
       onSubmit(resultRecord);
     } catch (error: any) {
-      console.error("Lỗi khi gửi bản ghi:", error);
       Alert.alert("Lỗi", error.message || "Đã xảy ra lỗi khi lưu bản ghi.");
     } finally {
       setIsSubmitting(false);
@@ -148,7 +181,23 @@ export default function ProgressRecordForm({
         editable={!isSubmitting}
       />
 
-      <Text style={styles.label}>Bạn đánh giá sức khỏe hôm nay? (1-10)</Text>
+      <View style={styles.healthScoreRow}>
+        <Text style={styles.label}>Bạn đánh giá sức khỏe hôm nay? (1-10)</Text>
+        <TouchableOpacity
+          onPress={() => setShowCriteriaModal(true)}
+          disabled={criteriaLoading}
+        >
+          {criteriaLoading ? (
+            <ActivityIndicator size="small" color={COLORS.light.PRIMARY} />
+          ) : (
+            <AntDesign
+              name="questioncircleo"
+              size={20}
+              color={COLORS.light.PRIMARY}
+            />
+          )}
+        </TouchableOpacity>
+      </View>
       <TextInput
         value={healthScore}
         onChangeText={setHealthScore}
@@ -196,6 +245,52 @@ export default function ProgressRecordForm({
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Modal hiển thị tiêu chí sức khỏe */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showCriteriaModal}
+        onRequestClose={() => setShowCriteriaModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowCriteriaModal(false)}
+            >
+              <AntDesign
+                name="closecircleo"
+                size={24}
+                color={COLORS.light.DARK_GREY_TEXT}
+              />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Tiêu chí điểm sức khỏe</Text>
+            {criteriaLoading ? (
+              <ActivityIndicator size="large" color={COLORS.light.PRIMARY} />
+            ) : criteriaError ? (
+              <Text style={styles.errorText}>
+                Lỗi tải tiêu chí: {criteriaError.message}
+              </Text>
+            ) : criteriaList.length === 0 ? (
+              <Text style={styles.messageText}>
+                Chưa có tiêu chí nào được thiết lập.
+              </Text>
+            ) : (
+              <ScrollView style={styles.criteriaListContainer}>
+                {criteriaList.map((item: HealthCriteriaItem) => (
+                  <View key={item.id} style={styles.criteriaItem}>
+                    <Text style={styles.criteriaTitle}>{item.title}</Text>
+                    <Text style={styles.criteriaDescription}>
+                      {htmlToListTextForDisplay(item.description)}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -217,6 +312,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: COLORS.light.DARK_GREY_TEXT,
+    marginBottom: 8,
+  },
+  healthScoreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   input: {
@@ -262,5 +363,72 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: COLORS.light.DARK_GREY_TEXT,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: COLORS.light.WHITE,
+    borderRadius: 15,
+    padding: 20,
+    width: "90%",
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 15,
+    right: 15,
+    zIndex: 1,
+    padding: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: COLORS.light.DARK_TEXT,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  criteriaListContainer: {
+    flexGrow: 1,
+  },
+  criteriaItem: {
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: COLORS.light.BORDER,
+  },
+  criteriaTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.light.PRIMARY,
+    marginBottom: 5,
+  },
+  criteriaDescription: {
+    fontSize: 14,
+    color: COLORS.light.TEXT,
+    lineHeight: 20,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  messageText: {
+    color: COLORS.light.DARK_GREY_TEXT,
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 10,
   },
 });

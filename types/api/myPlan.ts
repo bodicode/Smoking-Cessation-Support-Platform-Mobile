@@ -23,6 +23,7 @@ export interface IUser {
 export interface ICessationPlanTemplate {
   id: string;
   name: string;
+  coach_id: string;
 }
 
 export interface ICessationPlanStage {

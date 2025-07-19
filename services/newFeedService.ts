@@ -77,7 +77,6 @@ export const FeedService = {
 
       return data?.removeSharedPost;
     } catch (error) {
-      console.error("Error removing shared post:", error);
       throw error;
     }
   },
@@ -103,7 +102,6 @@ export const FeedService = {
 
       return data.updateSharedPost;
     } catch (error) {
-      console.error("Error updating shared post:", error);
       throw error;
     }
   },
@@ -123,7 +121,6 @@ export const FeedService = {
 
       return data.postLikes.data;
     } catch (error) {
-      console.error(error);
       throw error;
     }
   },
@@ -173,7 +170,6 @@ export const FeedService = {
       });
 
       if (errors && errors.length > 0) {
-        console.error("GraphQL Errors:", errors);
         throw new Error(errors[0].message);
       }
 
@@ -214,7 +210,6 @@ export const FeedService = {
 
       return data.updatePostComment;
     } catch (error) {
-      console.error("[CommentService] Error updating comment:", error);
       throw error;
     }
   },
@@ -234,7 +229,6 @@ export const FeedService = {
 
       return data.deletePostComment;
     } catch (error) {
-      console.error("[CommentService] Error deleting comment:", error);
       throw error;
     }
   },

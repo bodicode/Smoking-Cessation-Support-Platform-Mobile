@@ -68,7 +68,6 @@ export const CessationPlanService = {
       });
 
       if (errors) {
-        console.error("GraphQL Errors (createCessationPlan):", errors);
         const errorMessage = errors.map((err) => err.message).join(", ");
         throw new Error(
           `Failed to create cessation plan due to GraphQL errors: ${errorMessage}`
@@ -81,7 +80,6 @@ export const CessationPlanService = {
 
       return data.createCessationPlan as ICessationPlan;
     } catch (error) {
-      console.error("Error creating cessation plan:", error);
       throw error;
     }
   },
@@ -128,7 +126,6 @@ export const CessationPlanService = {
       });
       return response.data.createPlanStage;
     } catch (err: any) {
-      console.error("Lỗi:", err.graphQLErrors, err.networkError);
       throw err;
     }
   },

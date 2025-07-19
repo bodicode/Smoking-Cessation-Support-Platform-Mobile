@@ -26,6 +26,7 @@
     "expo-system-ui": "~5.0.7",
     "expo-web-browser": "~14.2.0",
     "graphql": "^16.11.0",
+    "graphql-ws": "^6.0.5",
     "ramda": "^0.31.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",

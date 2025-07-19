@@ -23,7 +23,6 @@ export const FeedbackService = {
       });
 
       if (errors) {
-        console.error("GraphQL Errors (getFeedbacks):", errors);
         const errorMessage = errors.map((err) => err.message).join(", ");
         throw new Error(
           `Failed to fetch feedbacks due to GraphQL errors: ${errorMessage}`
@@ -36,7 +35,6 @@ export const FeedbackService = {
 
       return data.feedbacks.data as IFeedback[];
     } catch (error) {
-      console.error("Error in getFeedbacks service:", error);
       throw error;
     }
   },
@@ -78,7 +76,6 @@ export const FeedbackService = {
       });
 
       if (errors) {
-        console.error("GraphQL Errors (updateFeedback):", errors);
         const errorMessage = errors.map((err) => err.message).join(", ");
         throw new Error(
           `Failed to update feedback due to GraphQL errors: ${errorMessage}`
@@ -93,7 +90,6 @@ export const FeedbackService = {
 
       return data.updateFeedback as IFeedback;
     } catch (error) {
-      console.error("Error in updateFeedback service:", error);
       throw error;
     }
   },
@@ -108,7 +104,6 @@ export const FeedbackService = {
       });
 
       if (errors) {
-        console.error("GraphQL Errors (removeFeedback):", errors);
         const errorMessage = errors.map((err) => err.message).join(", ");
         throw new Error(
           `Failed to remove feedback due to GraphQL errors: ${errorMessage}`
@@ -127,7 +122,6 @@ export const FeedbackService = {
         is_deleted: boolean;
       };
     } catch (error) {
-      console.error("Error in deleteFeedback service:", error);
       throw error;
     }
   },

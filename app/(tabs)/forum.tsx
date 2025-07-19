@@ -146,7 +146,6 @@ export default function ForumScreen() {
         text2: "Bài viết của bạn đã được đăng lên bảng tin.",
       });
     } catch (e: any) {
-      console.error("Error sharing badge:", e);
       let toastText1 = "Chia sẻ thất bại";
       let toastText2 = "Đã xảy ra lỗi khi đăng bài. Vui lòng thử lại sau.";
       let toastType: "error" | "info" | "success" = "error";
@@ -207,7 +206,6 @@ export default function ForumScreen() {
                 });
               }
             } catch (e) {
-              console.error("Failed to delete post:", e);
               Toast.show({
                 type: "error",
                 text1: "Lỗi!",
@@ -254,7 +252,6 @@ export default function ForumScreen() {
       setIsEditModalVisible(false);
       setEditingPost(null);
     } catch (e) {
-      console.error("Error saving edit:", e);
       Toast.show({
         type: "error",
         text1: "Lỗi cập nhật",
@@ -299,10 +296,6 @@ export default function ForumScreen() {
     try {
       await action(postId);
     } catch (e) {
-      console.error(
-        `Error ${isCurrentlyLiked ? "unliking" : "liking"} post:`,
-        e
-      );
       setLikedPosts((prev) => ({ ...prev, [postId]: isCurrentlyLiked }));
       setFeed((prevFeed) =>
         prevFeed.map((post) =>
