@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PlanTemplate } from "@/types/api/template";
 import { PlanTemplateService } from "@/services/templatePlanService";
+import { QuizService } from "@/services/quizService";
 import { getLevelColor, translateLevel } from "@/utils";
 import { useRouter } from "expo-router";
 import HomeHeader from "@/components/home/header";
@@ -32,6 +33,8 @@ const filterLevels = [
 export default function TemplateScreen() {
   const [templates, setTemplates] = useState<PlanTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [quizAttempt, setQuizAttempt] = useState<any>(null);
+  const [quizLoading, setQuizLoading] = useState(true);
   // BỘ LỌC MỚI: Thêm state để lưu mức độ đã chọn
   const [selectedFilter, setSelectedFilter] = useState("all");
   const router = useRouter();
@@ -44,8 +47,10 @@ export default function TemplateScreen() {
   useEffect(() => {
     if (user) {
       fetchTemplates();
+      checkQuizAttempt();
     } else {
       setLoading(false);
+      setQuizLoading(false);
     }
   }, [user]);
 
@@ -61,12 +66,31 @@ export default function TemplateScreen() {
     }
   };
 
+  const checkQuizAttempt = async () => {
+    setQuizLoading(true);
+    try {
+      const attempts = await QuizService.getQuizAttempt();
+
+      // Check if user has any completed quiz attempts
+      const completedAttempt = Array.isArray(attempts)
+        ? attempts.find(attempt => attempt.status === 'COMPLETED' && attempt.completed_at)
+        : null;
+
+      setQuizAttempt(completedAttempt);
+    } catch (err) {
+      console.error("Error checking quiz attempt:", err);
+      setQuizAttempt(null);
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
   const filteredTemplates =
     selectedFilter === "all"
       ? templates
       : templates.filter(
-          (template) => template.difficulty_level === selectedFilter
-        );
+        (template) => template.difficulty_level === selectedFilter
+      );
 
   if (!user) {
     return (
@@ -143,15 +167,39 @@ export default function TemplateScreen() {
         )}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
-          <View>
+          <View style={{ paddingHorizontal: 0 }}>
             <HomeHeader user={user} />
             <Text style={styles.sectionHeader}>Các mẫu kế hoạch cai thuốc</Text>
+
+            {/* Quiz Notification */}
+            {!quizLoading && !quizAttempt && (
+              <View style={styles.quizNotification}>
+                <View style={styles.quizNotificationContent}>
+                  <Ionicons name="information-circle" size={24} color="#FF6B35" />
+                  <View style={styles.quizNotificationText}>
+                    <Text style={styles.quizNotificationTitle}>
+                      Chưa có khảo sát cá nhân
+                    </Text>
+                    <Text style={styles.quizNotificationSubtitle}>
+                      Làm khảo sát để nhận gợi ý kế hoạch phù hợp nhất với bạn
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.quizButton}
+                  onPress={() => router.push('/quiz' as any)}
+                >
+                  <Text style={styles.quizButtonText}>Làm khảo sát ngay</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* BỘ LỌC MỚI: UI cho bộ lọc */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.filterContainer}
-              contentContainerStyle={{ paddingHorizontal: 18 }}
+            // contentContainerStyle={{ paddingHorizontal: 18 }}
             >
               {filterLevels.map((level) => (
                 <TouchableOpacity
@@ -166,7 +214,7 @@ export default function TemplateScreen() {
                     style={[
                       styles.filterButtonText,
                       selectedFilter === level.value &&
-                        styles.filterButtonTextActive,
+                      styles.filterButtonTextActive,
                     ]}
                   >
                     {level.label}
@@ -270,7 +318,7 @@ function PlanTemplateCard({ template, onPress }: PlanTemplateCardProps) {
             style={{ marginLeft: 10 }}
           />
           <Text style={styles.info}>
-            Tỷ lệ thành công: {(template.success_rate * 100).toFixed(1)}%
+            Tỷ lệ thành công: {(template.success_rate)}%
           </Text>
         </View>
         <ScrollView
@@ -306,7 +354,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.light.BG,
-    paddingHorizontal: 30,
+    paddingHorizontal: 18,
     paddingBottom: 50,
   },
   logoImage: {
@@ -490,7 +538,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     color: COLORS.light.TEXT,
-    paddingHorizontal: 18,
+    // paddingHorizontal: 18,
     marginTop: 10,
     marginBottom: 10,
   },
@@ -523,5 +571,45 @@ const styles = StyleSheet.create({
   },
   filterButtonTextActive: {
     color: COLORS.light.WHITE,
+  },
+  quizNotification: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  quizNotificationContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  quizNotificationText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  quizNotificationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E65100',
+    marginBottom: 4,
+  },
+  quizNotificationSubtitle: {
+    fontSize: 14,
+    color: '#BF360C',
+    lineHeight: 20,
+  },
+  quizButton: {
+    backgroundColor: '#FF6B35',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  quizButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

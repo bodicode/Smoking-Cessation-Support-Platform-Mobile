@@ -30,6 +30,10 @@ export interface IChatRoom {
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
+  messages?: ChatMessage[];
+  last_message?: ChatMessage;
+  unread_count?: number;
+  total_messages?: number;
 }
 
 export interface CreateChatMessageInput {

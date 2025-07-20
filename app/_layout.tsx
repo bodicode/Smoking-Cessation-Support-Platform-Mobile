@@ -66,6 +66,21 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="chat/index" 
+          options={{ 
+            title: "Đoạn chat",
+            headerShown: true 
+          }} 
+        />
+        <Stack.Screen 
+          name="chat/[chatRoomId]" 
+          options={{ 
+            title: "Đoạn chat",
+            headerShown: true,
+            headerBackTitle: "Quay lại"
+          }} 
+        />
       </Stack>
     </ThemeProvider>
   );

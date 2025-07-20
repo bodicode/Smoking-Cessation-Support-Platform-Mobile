@@ -26,6 +26,7 @@ import { CessationPlanService } from "@/services/myPlanService";
 import Toast from "react-native-toast-message";
 import { FeedbackService } from "@/services/feedbackService"; // Cần lại để fetch feedback
 import { ChatService } from "@/services/chatService";
+import { SubscriptionService } from "@/services/subscriptionService";
 import { useAuth } from "@/contexts/AuthContext";
 
 const { width } = Dimensions.get("window");
@@ -47,6 +48,8 @@ export default function PlanTemplateDetailScreen() {
   const [reason, setReason] = useState("");
   const [showReasonInput, setShowReasonInput] = useState(false);
   const [isCustom, setIsCustom] = useState(true);
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   // Sử dụng một useEffect để tải template và một để tải feedback
   useEffect(() => {
@@ -76,6 +79,32 @@ export default function PlanTemplateDetailScreen() {
     };
     fetchFeedbacksForTemplate();
   }, [id, user]);
+
+  // Check subscription status
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        setSubscriptionLoading(true);
+        const hasActiveSub = await SubscriptionService.hasActiveSubscription();
+        setHasSubscription(hasActiveSub);
+        
+        // Tự động disable custom nếu không có subscription
+        if (!hasActiveSub) {
+          setIsCustom(false);
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setHasSubscription(false);
+        setIsCustom(false);
+      } finally {
+        setSubscriptionLoading(false);
+      }
+    };
+    
+    if (user) {
+      checkSubscription();
+    }
+  }, [user]);
 
   const handleCreatePlan = async () => {
     try {
@@ -139,39 +168,48 @@ export default function PlanTemplateDetailScreen() {
       });
       setReason("");
 
-      const coachId = template.coach?.id;
-      if (coachId) {
-        try {
-          const newChatRoom = await ChatService.createChatRoom({
-            receiver_id: coachId,
-          });
-          Toast.show({
-            type: "success",
-            text1: `Phòng chat với ${
-              newChatRoom.receiver?.name || "Coach"
-            } đã được tạo!`,
-          });
-        } catch (chatError: any) {
-          console.error("Lỗi khi tạo phòng chat:", chatError);
-          if (chatError.message.includes("Chat room already exists")) {
-            Toast.show({
-              type: "info",
-              text1: "Phòng chat với Coach đã tồn tại",
-              text2: "Vui lòng vào tab Tin nhắn để xem.",
+      // Chỉ tạo chat room nếu user có subscription
+      if (hasSubscription) {
+        const coachId = template.coach?.id;
+        if (coachId) {
+          try {
+            const newChatRoom = await ChatService.createChatRoom({
+              receiver_id: coachId,
             });
-          } else {
             Toast.show({
-              type: "error",
-              text1: "Kế hoạch đã tạo, nhưng không thể tạo phòng chat",
-              text2: chatError.message || "Lỗi không xác định.",
+              type: "success",
+              text1: `Phòng chat với ${
+                newChatRoom.receiver?.name || "Coach"
+              } đã được tạo!`,
             });
+          } catch (chatError: any) {
+            console.error("Lỗi khi tạo phòng chat:", chatError);
+            if (chatError.message.includes("Chat room already exists")) {
+              Toast.show({
+                type: "info",
+                text1: "Phòng chat với Coach đã tồn tại",
+                text2: "Vui lòng vào tab Tin nhắn để xem.",
+              });
+            } else {
+              Toast.show({
+                type: "error",
+                text1: "Kế hoạch đã tạo, nhưng không thể tạo phòng chat",
+                text2: chatError.message || "Lỗi không xác định.",
+              });
+            }
           }
+        } else {
+          Toast.show({
+            type: "info",
+            text1: "Không tìm thấy thông tin Coach",
+            text2: "Không thể tạo phòng chat.",
+          });
         }
       } else {
         Toast.show({
           type: "info",
-          text1: "Không tìm thấy thông tin Coach",
-          text2: "Không thể tạo phòng chat.",
+          text1: "Kế hoạch đã tạo thành công!",
+          text2: "Nâng cấp thành viên để chat với Coach.",
         });
       }
 
@@ -269,7 +307,17 @@ export default function PlanTemplateDetailScreen() {
         <View style={styles.infoRow}>
           <Ionicons name="person-circle" size={22} color="#73B3FA" />
           <Text style={styles.infoMain}>Coach:</Text>
-          <Text style={styles.infoSub}>{template.coach?.name || "N/A"}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              if (template.coach?.id) {
+                router.push(`/coach/${template.coach.id}` as any);
+              }
+            }}
+          >
+            <Text style={[styles.infoSub, { color: '#276ef1', textDecorationLine: 'underline' }]}>
+              {template.coach?.name || "N/A"}
+            </Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="star" size={20} color="#FFB936" />
@@ -290,7 +338,7 @@ export default function PlanTemplateDetailScreen() {
             style={[styles.infoSub, { color: "#0C9775", fontWeight: "700" }]}
           >
             {template.success_rate
-              ? (template.success_rate * 100).toFixed(1)
+              ? (template.success_rate).toFixed(1)
               : "0.0"}
             %
           </Text>
@@ -364,6 +412,22 @@ export default function PlanTemplateDetailScreen() {
 
   const ListFooter = (
     <View style={styles.buttonWrapper}>
+      {!hasSubscription && !subscriptionLoading && (
+        <View style={styles.subscriptionInfo}>
+          <Ionicons name="information-circle" size={16} color="#FF6B35" />
+          <Text style={styles.subscriptionInfoText}>
+            Nâng cấp thành viên để cá nhân hóa kế hoạch
+          </Text>
+          <TouchableOpacity
+            style={styles.subscriptionInfoLink}
+            onPress={() => router.push('/membership')}
+          >
+            <Text style={styles.subscriptionInfoLinkText}>
+              Xem ngay
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <TouchableOpacity
         style={styles.useButton}
         onPress={() => setShowReasonInput(true)}
@@ -417,8 +481,30 @@ export default function PlanTemplateDetailScreen() {
                 onValueChange={setIsCustom}
                 trackColor={{ false: "#d1d5db", true: "#16F2A8" }}
                 thumbColor={isCustom ? "#0E9F6E" : "#f4f3f4"}
+                disabled={!hasSubscription}
               />
             </View>
+            
+            {!hasSubscription && !subscriptionLoading && (
+              <View style={styles.subscriptionWarning}>
+                <Ionicons name="warning" size={16} color="#FF6B35" />
+                <Text style={styles.subscriptionWarningText}>
+                  Tính năng cá nhân hóa chỉ dành cho thành viên
+                </Text>
+                <TouchableOpacity
+                  style={styles.subscriptionLink}
+                  onPress={() => {
+                    setShowReasonInput(false);
+                    router.push('/membership');
+                  }}
+                >
+                  <Text style={styles.subscriptionLinkText}>
+                    Xen ngay
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            
             <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>
               Nhập lý do bạn muốn bỏ thuốc
             </Text>
@@ -714,5 +800,54 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     minHeight: 80,
     textAlignVertical: "top",
+  },
+  subscriptionWarning: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  subscriptionWarningText: {
+    fontSize: 14,
+    color: '#E65100',
+    marginLeft: 8,
+    flex: 1,
+  },
+  subscriptionLink: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  subscriptionLinkText: {
+    fontSize: 14,
+    color: '#FF6B35',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
+  subscriptionInfo: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  subscriptionInfoText: {
+    fontSize: 14,
+    color: '#E65100',
+    marginLeft: 8,
+    flex: 1,
+  },
+  subscriptionInfoLink: {
+    marginTop: 4,
+  },
+  subscriptionInfoLinkText: {
+    fontSize: 14,
+    color: '#FF6B35',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });

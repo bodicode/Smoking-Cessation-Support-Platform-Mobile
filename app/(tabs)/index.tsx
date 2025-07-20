@@ -27,6 +27,7 @@ import {
   HEALTH_MILESTONES,
   IHealthMilestone,
 } from "@/types/api/healthMilestones";
+import { notificationService } from "@/services/notificationService";
 
 interface IProgressStats {
   days: number;
@@ -62,6 +63,7 @@ export default function HomeScreen() {
     useProgress();
 
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [isFormModalVisible, setIsFormModalVisible] = useState(false);
   const [selectedRecordForEdit, setSelectedRecordForEdit] = useState<
@@ -131,6 +133,12 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    notificationService.getUserNotifications({ page: 1, limit: 20 }).then(data => {
+      setUnreadCount(data.data.filter(n => n.status === "SENT").length);
+    });
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       refreshData();
@@ -150,26 +158,22 @@ export default function HomeScreen() {
         };
       }
 
+      // Parse start_date từ ISO string và chuyển về local time
       const startDate = new Date(activePlan.start_date);
-      startDate.setHours(0, 0, 0, 0);
+      const now = new Date(currentTime);
 
-      const normalizedCurrentTime = new Date(currentTime);
-      normalizedCurrentTime.setHours(0, 0, 0, 0);
-
-      const daysSincePlanStartMs =
-        normalizedCurrentTime.getTime() - startDate.getTime();
-      const calculatedDays = Math.max(
-        0,
-        Math.floor(daysSincePlanStartMs / (1000 * 3600 * 24))
-      );
-
-      const fullTimeDiffMs =
-        currentTime.getTime() - new Date(activePlan.start_date).getTime();
+      // Tính toán thời gian chính xác từ thời điểm bắt đầu
+      const fullTimeDiffMs = currentTime.getTime() - startDate.getTime();
       const fullTotalSeconds = Math.max(0, Math.floor(fullTimeDiffMs / 1000));
 
-      const actualHours = Math.floor(fullTotalSeconds / 3600) % 24;
-      const actualMinutes = Math.floor((fullTotalSeconds % 3600) / 60);
-      const actualSeconds = fullTotalSeconds % 60;
+      // Tính số ngày chính xác dựa trên tổng thời gian
+      const days = Math.floor(fullTotalSeconds / (24 * 3600));
+      
+      // Tính giờ, phút, giây còn lại
+      const remainingSeconds = fullTotalSeconds % (24 * 3600);
+      const actualHours = Math.floor(remainingSeconds / 3600);
+      const actualMinutes = Math.floor((remainingSeconds % 3600) / 60);
+      const actualSeconds = remainingSeconds % 60;
 
       let totalCigarettesSmokedAgain: number = 0;
       progressRecords.forEach((record) => {
@@ -178,13 +182,13 @@ export default function HomeScreen() {
 
       const totalCigarettesBaseline = initialDailyCigarettes;
       const totalCigarettesNotSmoked =
-        totalCigarettesBaseline * calculatedDays - totalCigarettesSmokedAgain;
+        totalCigarettesBaseline * days - totalCigarettesSmokedAgain;
       const moneySaved = Math.round(
         Math.max(0, totalCigarettesNotSmoked * costPerCigarette)
       );
 
       return {
-        days: calculatedDays,
+        days,
         hours: actualHours,
         minutes: actualMinutes,
         seconds: actualSeconds,
@@ -198,6 +202,12 @@ export default function HomeScreen() {
       initialDailyCigarettes,
       costPerCigarette,
     ]);
+
+  const avgHealthScore = useMemo(() => {
+    if (!progressRecords || progressRecords.length === 0) return 0;
+    const total = progressRecords.reduce((sum, rec) => sum + (rec.health_score || 0), 0);
+    return total / progressRecords.length;
+  }, [progressRecords]);
 
   const dailyCheckInStatus = useMemo(() => {
     const startOfWeek = getStartOfWeek(currentTime);
@@ -427,7 +437,7 @@ export default function HomeScreen() {
                   dayStatus.status === "missed" && styles.dailyDayMissed,
                   dayStatus.status === "current" && styles.dailyDayCurrent,
                   dayStatus.status === "before_plan" &&
-                    styles.dailyDayBeforePlan,
+                  styles.dailyDayBeforePlan,
                   dayStatus.isDisabled && { opacity: 0.5 },
                 ]}
                 onPress={() => handleDayCirclePress(dayStatus)}
@@ -438,13 +448,13 @@ export default function HomeScreen() {
                   style={[
                     styles.dailyDayText,
                     dayStatus.status === "recorded" &&
-                      styles.dailyDayTextRecorded,
+                    styles.dailyDayTextRecorded,
                     dayStatus.status === "missed" && styles.dailyDayTextMissed,
                     dayStatus.status === "current" &&
-                      styles.dailyDayTextCurrent,
+                    styles.dailyDayTextCurrent,
                     dayStatus.status === "future" && styles.dailyDayTextFuture,
                     dayStatus.status === "before_plan" &&
-                      styles.dailyDayTextBeforePlan,
+                    styles.dailyDayTextBeforePlan,
                   ]}
                 >
                   {dayStatus.dayAbbr}
@@ -505,13 +515,13 @@ export default function HomeScreen() {
           <View style={styles.bottomStatsRow}>
             <View style={styles.bottomStatItem}>
               <Ionicons
-                name="wallet-outline"
+                name="heart-outline"
                 size={28}
-                color={COLORS.light.MONEY_ICON}
+                color={COLORS.light.PRIMARY_RED}
               />
-              <Text style={styles.bottomStatLabel}>Tiền tiết kiệm </Text>
+              <Text style={styles.bottomStatLabel}>Sức khỏe trung bình</Text>
               <Text style={styles.bottomStatValue}>
-                {moneySaved.toLocaleString("vi-VN")}đ
+                {avgHealthScore ? avgHealthScore.toFixed(1) : "-"}
               </Text>
             </View>
             <View style={styles.bottomStatItem}>
@@ -595,10 +605,9 @@ export default function HomeScreen() {
                   style={[
                     styles.overallProgressBarFill,
                     {
-                      width: `${
-                        (achievedMilestones.length / HEALTH_MILESTONES.length) *
+                      width: `${(achievedMilestones.length / HEALTH_MILESTONES.length) *
                         100
-                      }%`,
+                        }%`,
                     },
                   ]}
                 />
@@ -630,7 +639,7 @@ export default function HomeScreen() {
               prefillDate={selectedDateForNewRecord}
               onSubmit={handleFormSubmit}
               onCancel={handleFormCancel}
-               coachId={activePlan?.template.coach_id}
+              coachId={activePlan?.template.coach_id}
             />
           </View>
         </TouchableOpacity>

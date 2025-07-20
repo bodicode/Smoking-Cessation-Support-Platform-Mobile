@@ -1,88 +1,103 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { ChatService } from "@/services/chatService";
-import { IChatRoom } from "@/types/api/chat";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
-  StatusBar,
+  ActivityIndicator,
   RefreshControl,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import COLORS from "@/constants/Colors";
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { ChatService } from '@/services/chatService';
+import { IChatRoom } from '@/types/api/chat';
+import { useAuth } from '@/contexts/AuthContext';
+import COLORS from '@/constants/Colors';
 
-function ChatRoomsScreen() {
+interface ChatRoomListProps {
+  onRoomPress?: (room: IChatRoom) => void;
+}
+
+const ChatRoomList: React.FC<ChatRoomListProps> = ({ onRoomPress }) => {
   const router = useRouter();
-  const { user, loading: userLoading } = useAuth();
+  const { user } = useAuth();
   const [chatRooms, setChatRooms] = useState<IChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    const fetchChatRooms = async () => {
-      if (!user || userLoading) {
-        setLoading(true);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const rooms = await ChatService.getAllChatRoomsWithHistory();
-        setChatRooms(rooms);
-      } catch (error) {
-        console.error('Error fetching chat rooms:', error);
-        setChatRooms([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchChatRooms();
-  }, [user, userLoading]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
+  const fetchChatRooms = async (isRefresh: boolean = false) => {
     try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       const rooms = await ChatService.getAllChatRoomsWithHistory();
-      setChatRooms(rooms);
+
+      if (isRefresh) {
+        setChatRooms(rooms);
+      } else {
+        setChatRooms(prev => [...prev, ...rooms]);
+      }
+
+      setHasMore(false); // Không có pagination trong API hiện tại
+      setPage(1);
     } catch (error) {
-      console.error('Error refreshing chat rooms:', error);
+      console.error('Error fetching chat rooms:', error);
     } finally {
+      setLoading(false);
       setRefreshing(false);
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      fetchChatRooms(true);
+    }
+  }, [user]);
+
+  const handleRefresh = () => {
+    fetchChatRooms(true);
+  };
+
+  const handleLoadMore = () => {
+    // Không có pagination trong API hiện tại
+    return;
+  };
+
   const handleRoomPress = (room: IChatRoom) => {
-    // Logic đơn giản: Luôn hiển thị receiver name vì đây là chat với coach
-    let displayName = room.receiver.name;
+    if (onRoomPress) {
+      onRoomPress(room);
+    } else {
+      // Logic đơn giản: Luôn hiển thị receiver name vì đây là chat với coach
+      let displayName = room.receiver.name;
+      
+      // Nếu receiver name trống, thì dùng creator name
+      if (!displayName || displayName.trim() === '') {
+        displayName = room.creator.name || 'Coach';
+      }
+      
+      // Nếu vẫn trống, dùng default
+      if (!displayName || displayName.trim() === '') {
+        displayName = 'Coach';
+      }
 
-    // Nếu receiver name trống, thì dùng creator name
-    if (!displayName || displayName.trim() === '') {
-      displayName = room.creator.name || 'Coach';
+      router.push({
+        pathname: `/chat/${room.id}` as any,
+        params: {
+          otherParticipantName: displayName,
+        },
+      });
     }
-
-    // Nếu vẫn trống, dùng default
-    if (!displayName || displayName.trim() === '') {
-      displayName = 'Coach';
-    }
-
-    router.push({
-      pathname: `/chat/${room.id}` as any,
-      params: {
-        otherParticipantName: displayName,
-      },
-    });
   };
 
   const formatLastMessage = (room: IChatRoom) => {
     if (!room.last_message) {
-      return "Chưa có tin nhắn";
+      return 'Chưa có tin nhắn';
     }
 
     const content = room.last_message.content;
@@ -95,29 +110,27 @@ function ChatRoomsScreen() {
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 1) {
-      return "Vừa xong";
+      return 'Vừa xong';
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)}h trước`;
     } else {
-      return date.toLocaleDateString("vi-VN");
+      return date.toLocaleDateString('vi-VN');
     }
   };
 
   const renderChatRoom = ({ item: room }: { item: IChatRoom }) => {
     // Logic đơn giản: Luôn hiển thị receiver name vì đây là chat với coach
     let displayName = room.receiver.name;
-
+    
     // Nếu receiver name trống, thì dùng creator name
     if (!displayName || displayName.trim() === '') {
       displayName = room.creator.name || 'Coach';
     }
-
+    
     // Nếu vẫn trống, dùng default
     if (!displayName || displayName.trim() === '') {
       displayName = 'Coach';
     }
-
-
 
     return (
       <TouchableOpacity
@@ -130,7 +143,7 @@ function ChatRoomsScreen() {
           {room.unread_count && room.unread_count > 0 && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadCount}>
-                {room.unread_count > 99 ? "99+" : room.unread_count}
+                {room.unread_count > 99 ? '99+' : room.unread_count}
               </Text>
             </View>
           )}
@@ -155,7 +168,7 @@ function ChatRoomsScreen() {
               {room.total_messages || 0} tin nhắn
             </Text>
             <Text style={styles.roomDate}>
-              Tạo: {new Date(room.created_at).toLocaleDateString("vi-VN")}
+              Tạo: {new Date(room.created_at).toLocaleDateString('vi-VN')}
             </Text>
           </View>
         </View>
@@ -173,125 +186,98 @@ function ChatRoomsScreen() {
     </View>
   );
 
-  if (userLoading || loading) {
+  const renderFooter = () => {
+    if (!hasMore) return null;
+    
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.light.PRIMARY} />
-          <Text style={styles.loadingText}>Đang tải cuộc trò chuyện...</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingFooter}>
+        <ActivityIndicator size="small" color={COLORS.light.PRIMARY} />
+        <Text style={styles.loadingText}>Đang tải thêm...</Text>
+      </View>
     );
-  }
+  };
 
-  if (!user) {
+  if (loading && chatRooms.length === 0) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centeredContainer}>
-          <Text style={styles.errorText}>Vui lòng đăng nhập để xem chat.</Text>
-        </View>
-      </SafeAreaView>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.light.PRIMARY} />
+        <Text style={styles.loadingText}>Đang tải cuộc trò chuyện...</Text>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.light.BACKGROUND} />
-
-      <FlatList
-        data={chatRooms}
-        renderItem={renderChatRoom}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[COLORS.light.PRIMARY]}
-          />
-        }
-        ListEmptyComponent={renderEmptyComponent}
-      />
-    </SafeAreaView>
+    <FlatList
+      data={chatRooms}
+      renderItem={renderChatRoom}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.listContainer}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={[COLORS.light.PRIMARY]}
+        />
+      }
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.1}
+      ListEmptyComponent={renderEmptyComponent}
+      ListFooterComponent={renderFooter}
+    />
   );
-}
-
-export default ChatRoomsScreen;
+};
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.light.BACKGROUND,
-  },
-  header: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    backgroundColor: COLORS.light.WHITE,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: COLORS.light.DARK_TEXT,
-  },
   listContainer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
   },
   roomItem: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingVertical: 16,
     paddingHorizontal: 12,
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
   avatarContainer: {
-    position: "relative",
+    position: 'relative',
     marginRight: 12,
   },
   unreadBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: -5,
     right: -5,
     backgroundColor: COLORS.light.ERROR,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   unreadCount: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   roomInfo: {
     flex: 1,
   },
   roomHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
   roomName: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     color: COLORS.light.DARK_TEXT,
   },
   lastMessageTime: {
@@ -304,13 +290,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   roomStats: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   messageCount: {
     fontSize: 12,
     color: COLORS.light.PRIMARY,
-    fontWeight: "500",
+    fontWeight: '500',
   },
   roomDate: {
     fontSize: 12,
@@ -318,44 +304,39 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: 60,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     color: COLORS.light.DARK_TEXT,
     marginTop: 16,
-    textAlign: "center",
+    textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
     color: COLORS.light.SUBTEXT,
     marginTop: 8,
-    textAlign: "center",
+    textAlign: 'center',
     paddingHorizontal: 20,
     lineHeight: 20,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingFooter: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
   loadingText: {
     marginTop: 8,
     fontSize: 14,
     color: COLORS.light.SUBTEXT,
   },
-  centeredContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: COLORS.light.ERROR,
-    textAlign: "center",
-  },
 });
+
+export default ChatRoomList; 

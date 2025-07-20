@@ -5,11 +5,9 @@ export const GET_ALL_CHAT_ROOMS_BY_USER_QUERY = gql`
     getAllChatRoomsByUser {
       id
       creator {
-        id
         name
       }
       receiver {
-        id
         name
       }
       created_at

@@ -138,4 +138,63 @@ export const ChatService = {
       throw new Error("Không thể gửi tin nhắn.");
     }
   },
+
+  // Lấy tất cả chat rooms với lịch sử đầy đủ
+  getAllChatRoomsWithHistory: async (): Promise<IChatRoom[]> => {
+    try {
+      // Lấy tất cả chat rooms
+      const allRooms = await ChatService.getAllChatRoomsByUser();
+      
+      // Lấy messages cho từng room
+      const roomsWithHistory = await Promise.all(
+        allRooms.map(async (room) => {
+          try {
+            const messages = await ChatService.getChatMessagesByRoomId(room.id);
+            return {
+              ...room,
+              messages: messages,
+              total_messages: messages.length,
+              last_message: messages.length > 0 ? messages[messages.length - 1] : undefined,
+            };
+          } catch (error) {
+            console.error(`Error fetching messages for room ${room.id}:`, error);
+            return {
+              ...room,
+              messages: [],
+              total_messages: 0,
+              last_message: undefined,
+            };
+          }
+        })
+      );
+
+      return roomsWithHistory;
+    } catch (error) {
+      console.error('Error in getAllChatRoomsWithHistory:', error);
+      throw new Error("Không thể lấy lịch sử chat.");
+    }
+  },
+
+  // Lấy chat room cụ thể với toàn bộ lịch sử
+  getChatRoomWithHistory: async (roomId: string): Promise<IChatRoom | null> => {
+    try {
+      const allRooms = await ChatService.getAllChatRoomsByUser();
+      const targetRoom = allRooms.find(room => room.id === roomId);
+      
+      if (!targetRoom) {
+        return null;
+      }
+
+      const messages = await ChatService.getChatMessagesByRoomId(roomId);
+      
+      return {
+        ...targetRoom,
+        messages: messages,
+        total_messages: messages.length,
+        last_message: messages.length > 0 ? messages[messages.length - 1] : undefined,
+      };
+    } catch (error) {
+      throw new Error("Không thể lấy lịch sử chat room.");
+    }
+  },
 };

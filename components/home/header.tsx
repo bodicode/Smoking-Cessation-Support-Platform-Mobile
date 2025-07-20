@@ -10,12 +10,13 @@ type HomeHeaderProps = {
   user: User | null;
   onCrownPress?: () => void;
   onNotePress?: () => void;
+  unreadCount?: number;
 };
 
 const AVATAR_SIZE = 42;
 const PROGRESS_SIZE = 48;
 
-const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress }) => {
+const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress, unreadCount }) => {
   const router = useRouter();
 
   const goToProfile = () => {
@@ -79,6 +80,25 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress }) => {
         >
           <MaterialCommunityIcons name="crown-outline" size={28} color="#fff" />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.quizBtn}
+          onPress={() => router.push("/quiz" as any)}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name="clipboard-text" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.noteBtn}
+          onPress={() => router.push("/notification")}
+          activeOpacity={0.85}
+        >
+          <Feather name="bell" size={26} color="#FFFFFF" />
+          {unreadCount && unreadCount > 0 && (
+            <View style={styles.badgeDot}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -93,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingBottom: 8,
     minHeight: 44,
   },
@@ -119,10 +139,11 @@ const styles = StyleSheet.create({
   },
   userNameText: {
     color: COLORS.light.TEXT,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
-    lineHeight: 22,
-    marginLeft: 12,
+    lineHeight: 20,
+    marginLeft: 10,
+    flexShrink: 1,
   },
   userPointText: {
     color: COLORS.light.INACTIVE,
@@ -145,21 +166,33 @@ const styles = StyleSheet.create({
   },
   crownBtn: {
     backgroundColor: COLORS.light.BTN_BG,
-    paddingHorizontal: 26,
+    paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 44,
-    marginHorizontal: 10,
+    marginHorizontal: 6,
   },
-  noteBtn: {
-    marginLeft: 8,
+  quizBtn: {
+    marginLeft: 6,
     position: "relative",
     justifyContent: "center",
     alignItems: "center",
-    minWidth: 42,
-    minHeight: 42,
+    minWidth: 40,
+    minHeight: 40,
+    backgroundColor: "#FF6B6B", 
+    borderRadius: 20,
+  },
+  noteBtn: {
+    marginLeft: 6,
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+    minWidth: 40,
+    minHeight: 40,
+    backgroundColor: "#E0F0FF", 
+    borderRadius: 20,
   },
   badgeDot: {
     position: "absolute",
@@ -173,6 +206,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.light.BG,
     zIndex: 3,
   },
+  badgeText: { color: "#fff", fontWeight: "bold", fontSize: 12, textAlign: "center" },
 });
 
 export default HomeHeader;
