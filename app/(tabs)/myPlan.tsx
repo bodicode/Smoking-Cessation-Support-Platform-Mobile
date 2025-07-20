@@ -173,7 +173,7 @@ export default function CessationPlanListScreen() {
       setShowCreateModal(false);
       const message =
         err?.message?.includes("stage_order") ||
-        err?.message?.includes("already exists")
+          err?.message?.includes("already exists")
           ? "Thứ tự giai đoạn này đã tồn tại."
           : "Không thể xử lý. Vui lòng thử lại.";
       Toast.show({

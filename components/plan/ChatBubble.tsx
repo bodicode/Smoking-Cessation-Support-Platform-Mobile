@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import COLORS from "@/constants/Colors";
 import { ChatService } from "@/services/chatService";
+import { SubscriptionService } from "@/services/subscriptionService";
 import { useAuth } from "@/contexts/AuthContext";
 import { IChatRoom } from "@/types/api/chat";
 import { Alert } from "react-native";
@@ -21,6 +22,8 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
   const { user, loading: userLoading } = useAuth();
   const [loadingChatRoom, setLoadingChatRoom] = useState(true);
   const [chatRoomFound, setChatRoomFound] = useState<IChatRoom | null>(null);
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserChatRoom = async () => {
@@ -31,7 +34,8 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
 
       setLoadingChatRoom(true);
       try {
-        const rooms = await ChatService.getAllChatRoomsByUser();
+        // Lấy tất cả chat rooms với lịch sử
+        const rooms = await ChatService.getAllChatRoomsWithHistory();
 
         if (rooms && rooms.length > 0) {
           setChatRoomFound(rooms[0]);
@@ -46,6 +50,29 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
     };
 
     fetchUserChatRoom();
+  }, [user, userLoading]);
+
+  // Check subscription status
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user || userLoading) {
+        setSubscriptionLoading(true);
+        return;
+      }
+
+      try {
+        setSubscriptionLoading(true);
+        const hasActiveSub = await SubscriptionService.hasActiveSubscription();
+        setHasSubscription(hasActiveSub);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setHasSubscription(false);
+      } finally {
+        setSubscriptionLoading(false);
+      }
+    };
+
+    checkSubscription();
   }, [user, userLoading]);
 
   const handlePress = () => {
@@ -66,25 +93,11 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
       return;
     }
 
-    if (chatRoomFound) {
-      const otherParticipantName =
-        chatRoomFound.creator.id === user.id
-          ? chatRoomFound.receiver.name
-          : chatRoomFound.creator.name;
-
-      router.push({
-        pathname: "/chat",
-        params: {
-          chatRoomId: chatRoomFound.id,
-          otherParticipantName: otherParticipantName || "Người hỗ trợ",
-        },
-      });
-    } else {
-      router.push("/chat");
-    }
+    // Luôn navigate đến màn hình chat rooms list
+    router.push("/chat");
   };
 
-  if (userLoading || loadingChatRoom) {
+  if (userLoading || loadingChatRoom || subscriptionLoading) {
     return (
       <View style={styles.chatBubble}>
         <ActivityIndicator size="small" color={COLORS.light.WHITE} />
@@ -92,6 +105,13 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
+
+
+  // Chỉ hiển thị ChatBubble khi user đã đăng nhập
   if (!user) {
     return null;
   }
