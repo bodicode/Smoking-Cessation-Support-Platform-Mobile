@@ -28,6 +28,7 @@ import {
   IHealthMilestone,
 } from "@/types/api/healthMilestones";
 import { notificationService } from "@/services/notificationService";
+import { UserService } from '@/services/userService';
 
 interface IProgressStats {
   days: number;
@@ -55,11 +56,52 @@ const formatDateToYYYYMMDD = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+function LeaderboardStreak() {
+  const [leaderboard, setLeaderboard] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    UserService.getStreakLeaderboard(10, 0)
+      .then(setLeaderboard)
+      .catch(() => setLeaderboard(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <View style={styles.leaderboardCard}>
+      <Text style={styles.leaderboardTitle}>🔥 Bảng xếp hạng streak</Text>
+      {loading ? (
+        <ActivityIndicator size="small" color={COLORS.light.PRIMARY} style={{ marginVertical: 16 }} />
+      ) : leaderboard && leaderboard.data && leaderboard.data.length > 0 ? (
+        <View>
+          {leaderboard.data.map((item: any, idx: number) => (
+            <View key={item.userId} style={[styles.leaderboardRow, leaderboard.myRank && item.userId === leaderboard.myRank.userId && styles.leaderboardRowMe]}>
+              <Text style={[styles.leaderboardRank, idx < 3 && styles.leaderboardRankTop]}>{item.rank}</Text>
+              <Text style={styles.leaderboardName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.leaderboardStreak}>{item.streak} ngày</Text>
+            </View>
+          ))}
+          {leaderboard.myRank && !leaderboard.data.some((i: any) => i.userId === leaderboard.myRank.userId) && (
+            <View style={[styles.leaderboardRow, styles.leaderboardRowMe, { marginTop: 8 }]}>
+              <Text style={styles.leaderboardRank}>{leaderboard.myRank.rank}</Text>
+              <Text style={styles.leaderboardName} numberOfLines={1}>{leaderboard.myRank.name}</Text>
+              <Text style={styles.leaderboardStreak}>{leaderboard.myRank.streak} ngày</Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <Text style={{ color: COLORS.light.SUBTEXT, textAlign: 'center', marginVertical: 12 }}>Chưa có dữ liệu xếp hạng.</Text>
+      )}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
 
-  const { activePlan, progressRecords, loading, error, refreshData } =
+  const { activePlan, progressRecords, loading, error, refreshData, totalMoneySaved } =
     useProgress();
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -168,7 +210,7 @@ export default function HomeScreen() {
 
       // Tính số ngày chính xác dựa trên tổng thời gian
       const days = Math.floor(fullTotalSeconds / (24 * 3600));
-      
+
       // Tính giờ, phút, giây còn lại
       const remainingSeconds = fullTotalSeconds % (24 * 3600);
       const actualHours = Math.floor(remainingSeconds / 3600);
@@ -409,216 +451,210 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity style={styles.howAreYouCard} activeOpacity={0.8}>
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={20}
-            color={COLORS.light.PRIMARY_YELLOW}
-          />
-          <Text style={styles.howAreYouText}>
-            Hôm nay bạn cảm thấy như thế nào?
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.dailyCheckInCard}>
-          <Text style={styles.dailyCheckInTitle}>
-            Đánh giá sức khỏe mỗi ngày nhé!
-          </Text>
-          <View style={styles.dailyCheckInRow}>
-            <Text style={styles.dailyCheckInSubtitle}>Tuần này</Text>
-          </View>
-          <View style={styles.dailyDaysContainer}>
-            {dailyCheckInStatus.map((dayStatus, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dailyDayCircle,
-                  dayStatus.status === "recorded" && styles.dailyDayRecorded,
-                  dayStatus.status === "missed" && styles.dailyDayMissed,
-                  dayStatus.status === "current" && styles.dailyDayCurrent,
-                  dayStatus.status === "before_plan" &&
-                  styles.dailyDayBeforePlan,
-                  dayStatus.isDisabled && { opacity: 0.5 },
-                ]}
-                onPress={() => handleDayCirclePress(dayStatus)}
-                disabled={dayStatus.isDisabled}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.dailyDayText,
-                    dayStatus.status === "recorded" &&
-                    styles.dailyDayTextRecorded,
-                    dayStatus.status === "missed" && styles.dailyDayTextMissed,
-                    dayStatus.status === "current" &&
-                    styles.dailyDayTextCurrent,
-                    dayStatus.status === "future" && styles.dailyDayTextFuture,
-                    dayStatus.status === "before_plan" &&
-                    styles.dailyDayTextBeforePlan,
-                  ]}
-                >
-                  {dayStatus.dayAbbr}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.progressSectionTitleContainer}>
-          <Text style={styles.progressSectionTitle}>Hành trình của tôi</Text>
-          <TouchableOpacity>
-            <Ionicons
-              name="share-outline"
-              size={24}
-              color={COLORS.light.DARK_GREY_TEXT}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.mainProgressCard}>
-          <View style={styles.timeQuitContainer}>
-            <Ionicons
-              name="time-outline"
-              size={24}
-              color={COLORS.light.DARK_GREY_TEXT}
-              style={{ marginRight: 10 }}
-            />
-            <View style={styles.timeValueContainer}>
-              <Text style={styles.timeValue}>
-                {String(days).padStart(2, "0")}
-              </Text>
-              <Text style={styles.timeUnit}>Ngày</Text>
-            </View>
-            <Text style={styles.colon}>:</Text>
-            <View style={styles.timeValueContainer}>
-              <Text style={styles.timeValue}>
-                {String(hours).padStart(2, "0")}
-              </Text>
-              <Text style={styles.timeUnit}>Giờ</Text>
-            </View>
-            <Text style={styles.colon}>:</Text>
-            <View style={styles.timeValueContainer}>
-              <Text style={styles.timeValue}>
-                {String(minutes).padStart(2, "0")}
-              </Text>
-              <Text style={styles.timeUnit}>Phút</Text>
-            </View>
-            <Text style={styles.colon}>:</Text>
-            <View style={styles.timeValueContainer}>
-              <Text style={styles.timeValue}>
-                {String(seconds).padStart(2, "0")}
-              </Text>
-              <Text style={styles.timeUnit}>Giây</Text>
-            </View>
-          </View>
-
-          <View style={styles.bottomStatsRow}>
-            <View style={styles.bottomStatItem}>
+        {activePlan ? (
+          <>
+            <TouchableOpacity style={styles.howAreYouCard} activeOpacity={0.8}>
               <Ionicons
-                name="heart-outline"
-                size={28}
-                color={COLORS.light.PRIMARY_RED}
+                name="chatbubble-ellipses-outline"
+                size={20}
+                color={COLORS.light.PRIMARY_YELLOW}
               />
-              <Text style={styles.bottomStatLabel}>Sức khỏe trung bình</Text>
-              <Text style={styles.bottomStatValue}>
-                {avgHealthScore ? avgHealthScore.toFixed(1) : "-"}
-              </Text>
-            </View>
-            <View style={styles.bottomStatItem}>
-              <Ionicons
-                name="logo-no-smoking"
-                size={28}
-                color={COLORS.light.CIGARETTE_ICON}
-              />
-              <Text style={styles.bottomStatLabel}>
-                Số điếu đã hút từ lúc bạn bắt đầu kế hoạch
-              </Text>
-              <Text style={styles.bottomStatValue}>
-                {cigarettesSmokedAgain}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.additionalStatsGrid}>
-            <TouchableOpacity
-              style={[styles.additionalStatCard, styles.startDateCard]}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={22}
-                color={COLORS.light.PRIMARY_BLUE}
-              />
-              <Text style={styles.additionalStatLabel}>Bắt đầu</Text>
-              <Text style={[styles.additionalStatValue, styles.startDateText]}>
-                {activePlan ? formatPlanDate(activePlan.start_date) : "N/A"}
+              <Text style={styles.howAreYouText}>
+                Hôm nay bạn cảm thấy như thế nào?
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.additionalStatCard, styles.targetDateCard]}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="flag-outline"
-                size={22}
-                color={COLORS.light.PRIMARY_YELLOW_DARK}
-              />
-              <Text style={styles.additionalStatLabel}>Mục tiêu</Text>
-              <Text style={[styles.additionalStatValue, styles.targetDateText]}>
-                {activePlan && activePlan.target_date
-                  ? formatPlanDate(activePlan.target_date)
-                  : "N/A"}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
-          <ProgressCharts records={progressRecords} />
-
-          {activePlan && achievedMilestones.length > 0 && (
-            <View style={styles.healthMilestonesContainer}>
-              <Text style={styles.healthMilestonesTitle}>
-                Sức khỏe của bạn đang cải thiện! 🎉
+            <View style={styles.dailyCheckInCard}>
+              <Text style={styles.dailyCheckInTitle}>
+                Đánh giá sức khỏe mỗi ngày nhé!
               </Text>
-              {achievedMilestones.map((milestone, index) => (
-                <View key={milestone.id} style={styles.milestoneItem}>
-                  <Ionicons
-                    name={milestone.iconName as any}
-                    size={24}
-                    color={milestone.iconColor}
-                    style={styles.milestoneIcon}
-                  />
-                  <View style={styles.milestoneContent}>
-                    <Text style={styles.milestoneTimeframe}>
-                      Sau {milestone.timeframe}
-                    </Text>
-                    <Text style={styles.milestoneDescription}>
-                      {milestone.description}
-                    </Text>
-                  </View>
-                  {index < achievedMilestones.length - 1 && (
-                    <View style={styles.milestoneConnector} />
-                  )}
-                </View>
-              ))}
-              <View style={styles.overallProgressBarContainer}>
-                <View
-                  style={[
-                    styles.overallProgressBarFill,
-                    {
-                      width: `${(achievedMilestones.length / HEALTH_MILESTONES.length) *
-                        100
-                        }%`,
-                    },
-                  ]}
-                />
+              <View style={styles.dailyCheckInRow}>
+                <Text style={styles.dailyCheckInSubtitle}>Tuần này</Text>
               </View>
-              <Text style={styles.overallProgressText}>
-                Bạn đã đạt {achievedMilestones.length} /{" "}
-                {HEALTH_MILESTONES.length} mốc sức khỏe!
-              </Text>
+              <View style={styles.dailyDaysContainer}>
+                {dailyCheckInStatus.map((dayStatus, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dailyDayCircle,
+                      dayStatus.status === "recorded" && styles.dailyDayRecorded,
+                      dayStatus.status === "missed" && styles.dailyDayMissed,
+                      dayStatus.status === "current" && styles.dailyDayCurrent,
+                      dayStatus.status === "before_plan" &&
+                      styles.dailyDayBeforePlan,
+                      dayStatus.isDisabled && { opacity: 0.5 },
+                    ]}
+                    onPress={() => handleDayCirclePress(dayStatus)}
+                    disabled={dayStatus.isDisabled}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.dailyDayText,
+                        dayStatus.status === "recorded" &&
+                        styles.dailyDayTextRecorded,
+                        dayStatus.status === "missed" && styles.dailyDayTextMissed,
+                        dayStatus.status === "current" && styles.dailyDayTextCurrent,
+                        dayStatus.status === "future" && styles.dailyDayTextFuture,
+                        dayStatus.status === "before_plan" &&
+                        styles.dailyDayTextBeforePlan,
+                      ]}
+                    >
+                      {dayStatus.dayAbbr}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          )}
-        </View>
+
+            <View style={styles.progressSectionTitleContainer}>
+              <Text style={styles.progressSectionTitle}>Hành trình của tôi</Text>
+              <TouchableOpacity>
+                <Ionicons
+                  name="share-outline"
+                  size={24}
+                  color={COLORS.light.DARK_GREY_TEXT}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.mainProgressCard}>
+              <View style={styles.timeQuitContainer}>
+                <Ionicons
+                  name="time-outline"
+                  size={24}
+                  color={COLORS.light.DARK_GREY_TEXT}
+                  style={{ marginRight: 10 }}
+                />
+                <View style={styles.timeValueContainer}>
+                  <Text style={styles.timeValue}>
+                    {String(days).padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.timeUnit}>Ngày</Text>
+                </View>
+                <Text style={styles.colon}>:</Text>
+                <View style={styles.timeValueContainer}>
+                  <Text style={styles.timeValue}>
+                    {String(hours).padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.timeUnit}>Giờ</Text>
+                </View>
+                <Text style={styles.colon}>:</Text>
+                <View style={styles.timeValueContainer}>
+                  <Text style={styles.timeValue}>
+                    {String(minutes).padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.timeUnit}>Phút</Text>
+                </View>
+                <Text style={styles.colon}>:</Text>
+                <View style={styles.timeValueContainer}>
+                  <Text style={styles.timeValue}>
+                    {String(seconds).padStart(2, "0")}
+                  </Text>
+                  <Text style={styles.timeUnit}>Giây</Text>
+                </View>
+              </View>
+              <View style={{ alignItems: 'center', marginBottom: 10 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: COLORS.light.PRIMARY }}>
+                  Tổng tiền đã tiết kiệm: {totalMoneySaved.toLocaleString('vi-VN')}₫
+                </Text>
+              </View>
+
+              <View style={styles.bottomStatsRow}>
+                <View style={styles.bottomStatItem}>
+                  <Ionicons
+                    name="heart-outline"
+                    size={28}
+                    color={COLORS.light.PRIMARY_RED}
+                  />
+                  <Text style={styles.bottomStatLabel}>Sức khỏe trung bình</Text>
+                  <Text style={styles.bottomStatValue}>
+                    {avgHealthScore ? avgHealthScore.toFixed(1) : "-"}
+                  </Text>
+                </View>
+                <View style={styles.bottomStatItem}>
+                  <Ionicons
+                    name="logo-no-smoking"
+                    size={28}
+                    color={COLORS.light.CIGARETTE_ICON}
+                  />
+                  <Text style={styles.bottomStatLabel}>
+                    Số điếu đã hút
+                  </Text>
+                  <Text style={styles.bottomStatValue}>
+                    {cigarettesSmokedAgain}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.additionalStatsGrid}>
+                <TouchableOpacity
+                  style={[styles.additionalStatCard, styles.startDateCard]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="calendar-outline"
+                    size={22}
+                    color={COLORS.light.PRIMARY_BLUE}
+                  />
+                  <Text style={styles.additionalStatLabel}>Bắt đầu</Text>
+                  <Text style={[styles.additionalStatValue, styles.startDateText]}>
+                    {activePlan ? formatPlanDate(activePlan.start_date) : "N/A"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.additionalStatCard, styles.targetDateCard]}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="flag-outline"
+                    size={22}
+                    color={COLORS.light.PRIMARY_YELLOW_DARK}
+                  />
+                  <Text style={styles.additionalStatLabel}>Mục tiêu</Text>
+                  <Text style={[styles.additionalStatValue, styles.targetDateText]}>
+                    {activePlan && activePlan.target_date
+                      ? formatPlanDate(activePlan.target_date)
+                      : "N/A"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <ProgressCharts records={progressRecords} planId={activePlan?.id} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.membershipInviteCard}>
+              <Ionicons name="star-outline" size={40} color={COLORS.light.PRIMARY_YELLOW_DARK} style={{ marginBottom: 10 }} />
+              <Text style={styles.membershipInviteTitle}>Nâng cấp thành viên để nhận nhiều quyền lợi hơn!</Text>
+              <Text style={styles.membershipInviteDesc}>Trở thành thành viên để cá nhân hóa kế hoạch, chat với coach và nhận nhiều ưu đãi đặc biệt.</Text>
+              <TouchableOpacity
+                style={styles.membershipInviteButton}
+                onPress={() => router.push('/membership')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="rocket-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.membershipInviteButtonText}>Đăng ký thành viên</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.quizInviteCard}>
+              <Ionicons name="heart-circle-outline" size={48} color={COLORS.light.PRIMARY_GREEN} style={{ marginBottom: 12 }} />
+              <Text style={styles.quizInviteTitle}>Bạn chưa có kế hoạch nào</Text>
+              <Text style={styles.quizInviteDesc}>Hãy bắt đầu hành trình bằng cách làm khảo sát để nhận gợi ý kế hoạch phù hợp nhất cho bạn!</Text>
+              <TouchableOpacity
+                style={styles.quizInviteButton}
+                onPress={() => router.push('/quiz')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="document-text-outline" size={22} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.quizInviteButtonText}>Làm khảo sát ngay</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        <LeaderboardStreak />
       </ScrollView>
 
       <Modal
@@ -1148,5 +1184,148 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
     fontWeight: "600",
+  },
+  leaderboardCard: {
+    backgroundColor: COLORS.light.CARD_BG,
+    borderRadius: 18,
+    padding: 18,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    shadowColor: COLORS.light.SHADOW,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  leaderboardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.light.PRIMARY_BLUE_DARK,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  leaderboardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.light.BORDER_LIGHT_GREY,
+  },
+  leaderboardRowMe: {
+    backgroundColor: '#E6F7FF',
+    borderRadius: 8,
+  },
+  leaderboardRank: {
+    width: 32,
+    fontWeight: 'bold',
+    color: COLORS.light.PRIMARY,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  leaderboardRankTop: {
+    color: '#FFB936',
+    fontSize: 18,
+  },
+  leaderboardName: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.light.TEXT,
+    marginLeft: 8,
+    marginRight: 8,
+    fontWeight: '500',
+  },
+  leaderboardStreak: {
+    minWidth: 60,
+    textAlign: 'right',
+    color: COLORS.light.PRIMARY_GREEN_DARK,
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  quizInviteCard: {
+    backgroundColor: COLORS.light.CARD_BG,
+    borderRadius: 18,
+    padding: 28,
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    shadowColor: COLORS.light.SHADOW,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  quizInviteTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.light.PRIMARY_BLUE_DARK,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  quizInviteDesc: {
+    fontSize: 15,
+    color: COLORS.light.SUBTEXT,
+    marginBottom: 18,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  quizInviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.light.PRIMARY_BLUE,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    marginTop: 6,
+  },
+  quizInviteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 2,
+  },
+  membershipInviteCard: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 18,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 18,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    shadowColor: COLORS.light.SHADOW,
+    shadowOpacity: 0.07,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  membershipInviteTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: COLORS.light.PRIMARY_YELLOW_DARK,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  membershipInviteDesc: {
+    fontSize: 14,
+    color: COLORS.light.SECONDARY_TEXT,
+    marginBottom: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  membershipInviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.light.PRIMARY_YELLOW_DARK,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    marginTop: 4,
+  },
+  membershipInviteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginLeft: 2,
   },
 });

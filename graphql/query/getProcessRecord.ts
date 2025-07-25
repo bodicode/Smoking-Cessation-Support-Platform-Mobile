@@ -13,6 +13,7 @@ export const GET_PROGRESS_RECORDS_QUERY = gql`
         notes
         record_date
       }
+      total_money_saved
     }
   }
 `;

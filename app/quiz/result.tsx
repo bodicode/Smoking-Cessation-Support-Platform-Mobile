@@ -248,6 +248,14 @@ const QuizResultPage: React.FC = () => {
           )}
         </View>
       </View>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.secondaryButton, { marginTop: 8 }]}
+          onPress={() => router.replace('/quiz?redo=1')}
+        >
+          <Text style={styles.secondaryButtonText}>Làm lại khảo sát</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 };
