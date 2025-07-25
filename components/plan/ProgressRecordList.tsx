@@ -29,6 +29,7 @@ export default function ProgressRecordsList({
   coachId: string;
 }) {
   const [records, setRecords] = useState<IProgressRecord[]>([]);
+  const [totalMoneySaved, setTotalMoneySaved] = useState<number>(0);
   const [selectedRecord, setSelectedRecord] = useState<IProgressRecord | null>(
     null
   );
@@ -49,7 +50,7 @@ export default function ProgressRecordsList({
     setLoading(true);
     setError(null);
     try {
-      const data = await ProgressRecordService.getRecords({
+      const { records, total_money_saved } = await ProgressRecordService.getRecords({
         params: {
           limit: 20,
           page: 1,
@@ -58,7 +59,8 @@ export default function ProgressRecordsList({
         },
         filters: { planId: planId },
       });
-      setRecords(data || []);
+      setRecords(records || []);
+      setTotalMoneySaved(total_money_saved);
     } catch (e: any) {
       setError("Không thể tải bản ghi. Vui lòng thử lại.");
       Toast.show({ type: "error", text1: "Không thể tải bản ghi" });
@@ -147,6 +149,11 @@ export default function ProgressRecordsList({
 
   return (
     <View style={styles.mainContainer}>
+      <View style={{ alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: COLORS.light.PRIMARY }}>
+          Tổng tiền đã tiết kiệm: {totalMoneySaved.toLocaleString('vi-VN')}₫
+        </Text>
+      </View>
       <FlatList
         data={records}
         keyExtractor={(item) => item.id}

@@ -28,6 +28,7 @@ import { FeedbackService } from "@/services/feedbackService"; // Cần lại đ�
 import { ChatService } from "@/services/chatService";
 import { SubscriptionService } from "@/services/subscriptionService";
 import { useAuth } from "@/contexts/AuthContext";
+import { QuizService } from '@/services/quizService';
 
 const { width } = Dimensions.get("window");
 
@@ -47,6 +48,7 @@ export default function PlanTemplateDetailScreen() {
 
   const [reason, setReason] = useState("");
   const [showReasonInput, setShowReasonInput] = useState(false);
+  const [quizCompleted, setQuizCompleted] = useState<boolean | null>(null);
   const [isCustom, setIsCustom] = useState(true);
   const [hasSubscription, setHasSubscription] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
@@ -87,7 +89,7 @@ export default function PlanTemplateDetailScreen() {
         setSubscriptionLoading(true);
         const hasActiveSub = await SubscriptionService.hasActiveSubscription();
         setHasSubscription(hasActiveSub);
-        
+
         // Tự động disable custom nếu không có subscription
         if (!hasActiveSub) {
           setIsCustom(false);
@@ -100,14 +102,43 @@ export default function PlanTemplateDetailScreen() {
         setSubscriptionLoading(false);
       }
     };
-    
+
     if (user) {
       checkSubscription();
     }
   }, [user]);
 
+  // Khi mở modal, kiểm tra trạng thái quiz
+  useEffect(() => {
+    if (showReasonInput) {
+      (async () => {
+        try {
+          const quizAttempt = await QuizService.getQuizAttempt();
+          const isQuizCompleted = Array.isArray(quizAttempt)
+            ? quizAttempt.some(attempt => attempt.status === 'COMPLETED' && attempt.completed_at)
+            : quizAttempt && quizAttempt.status === 'COMPLETED' && quizAttempt.completed_at;
+          setQuizCompleted(!!isQuizCompleted);
+        } catch {
+          setQuizCompleted(null);
+        }
+      })();
+    }
+  }, [showReasonInput]);
+
   const handleCreatePlan = async () => {
     try {
+      // Kiểm tra đã làm quiz chưa
+      const quizAttempt = await QuizService.getQuizAttempt();
+      const isQuizCompleted = Array.isArray(quizAttempt)
+        ? quizAttempt.some(attempt => attempt.status === 'COMPLETED' && attempt.completed_at)
+        : quizAttempt && quizAttempt.status === 'COMPLETED' && quizAttempt.completed_at;
+      if (!isQuizCompleted) {
+        Toast.show({
+          type: 'error',
+          text1: 'Bạn cần hoàn thành khảo sát trước khi sử dụng kế hoạch!',
+        });
+        return;
+      }
       setShowReasonInput(false);
 
       const existingPlans = await CessationPlanService.getCessationPlans({
@@ -178,9 +209,8 @@ export default function PlanTemplateDetailScreen() {
             });
             Toast.show({
               type: "success",
-              text1: `Phòng chat với ${
-                newChatRoom.receiver?.name || "Coach"
-              } đã được tạo!`,
+              text1: `Phòng chat với ${newChatRoom.receiver?.name || "Coach"
+                } đã được tạo!`,
             });
           } catch (chatError: any) {
             console.error("Lỗi khi tạo phòng chat:", chatError);
@@ -484,7 +514,8 @@ export default function PlanTemplateDetailScreen() {
                 disabled={!hasSubscription}
               />
             </View>
-            
+
+
             {!hasSubscription && !subscriptionLoading && (
               <View style={styles.subscriptionWarning}>
                 <Ionicons name="warning" size={16} color="#FF6B35" />
@@ -504,7 +535,16 @@ export default function PlanTemplateDetailScreen() {
                 </TouchableOpacity>
               </View>
             )}
-            
+
+            {quizCompleted === false && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF3E0', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <Ionicons name="warning" size={18} color="#FFA500" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#E65100', fontSize: 14, flex: 1 }}>
+                  Bạn nên hoàn thành khảo sát trước khi sử dụng kế hoạch để nhận được gợi ý phù hợp nhất!
+                </Text>
+              </View>
+            )}
+
             <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>
               Nhập lý do bạn muốn bỏ thuốc
             </Text>

@@ -16,7 +16,7 @@ export const ProgressRecordService = {
   async getRecords({
     params,
     filters,
-  }: IGetRecordsVariables): Promise<IProgressRecord[]> {
+  }: IGetRecordsVariables): Promise<{ records: IProgressRecord[]; total_money_saved: number }> {
     try {
       const defaultParams: IPaginationParamsInput = {
         limit: 10,
@@ -51,7 +51,10 @@ export const ProgressRecordService = {
         );
       }
 
-      return data.progressRecords.data as IProgressRecord[];
+      return {
+        records: data.progressRecords.data as IProgressRecord[],
+        total_money_saved: data.progressRecords.total_money_saved ?? 0,
+      };
     } catch (error) {
       throw error;
     }

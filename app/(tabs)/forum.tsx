@@ -274,13 +274,14 @@ export default function ForumScreen() {
     }
 
     if (likingPostId) return;
-    setLikingPostId(postId);
+    setLikingPostId(postId); // vẫn set để chặn spam, nhưng không dùng để show loading
 
     const isCurrentlyLiked = likedPosts[postId];
     const action = isCurrentlyLiked
       ? FeedService.unlikePost
       : FeedService.likePost;
 
+    // Optimistic update: đổi trạng thái và số lượng like ngay lập tức
     setLikedPosts((prev) => ({ ...prev, [postId]: !isCurrentlyLiked }));
     setFeed((prevFeed) =>
       prevFeed.map((post) =>
@@ -296,6 +297,7 @@ export default function ForumScreen() {
     try {
       await action(postId);
     } catch (e) {
+      // Nếu lỗi, revert lại trạng thái
       setLikedPosts((prev) => ({ ...prev, [postId]: isCurrentlyLiked }));
       setFeed((prevFeed) =>
         prevFeed.map((post) =>
@@ -400,18 +402,11 @@ export default function ForumScreen() {
               onPress={() => handleToggleLike(item.id)}
               disabled={isLiking || isFetchingLikers}
             >
-              {isLiking || isFetchingLikers ? (
-                <ActivityIndicator
-                  size="small"
-                  color={isLiked ? COLORS.light.red : COLORS.light.green}
-                />
-              ) : (
-                <Ionicons
-                  name={isLiked ? "heart" : "heart-outline"}
-                  size={20}
-                  color={isLiked ? COLORS.light.red : COLORS.light.green}
-                />
-              )}
+              <Ionicons
+                name={isLiked ? "heart" : "heart-outline"}
+                size={20}
+                color={isLiked ? COLORS.light.red : COLORS.light.green}
+              />
               <Text
                 style={[
                   styles.footerText,

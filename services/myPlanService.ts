@@ -5,6 +5,7 @@ import { UPDATE_CESSATION_PLAN } from "@/graphql/mutation/updatePlan";
 import { UPDATE_PLAN_STAGE } from "@/graphql/mutation/updatePlanStage";
 import { GET_CESSATION_PLANS_QUERY } from "@/graphql/query/getMyPlan";
 import client from "@/libs/apollo-client";
+import { GET_PLAN_STAGE_CHARTS } from '@/graphql/query/getPlanStageCharts';
 import { IPaginationParamsInput } from "@/types/api/feedback";
 import {
   ICessationPlan,
@@ -151,5 +152,16 @@ export const CessationPlanService = {
       },
     });
     return data.removePlanStage;
+  },
+};
+
+export const PlanStageChartService = {
+  async getPlanStageCharts(planId: string, filters?: any) {
+    const { data } = await client.query({
+      query: GET_PLAN_STAGE_CHARTS,
+      variables: { planId, filters },
+      fetchPolicy: 'network-only',
+    });
+    return data.planStageChartsData;
   },
 };

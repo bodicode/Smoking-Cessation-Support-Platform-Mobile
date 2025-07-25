@@ -17,6 +17,7 @@ interface ProgressContextValue {
   loading: boolean;
   error: string | null;
   refreshData: () => Promise<void>;
+  totalMoneySaved: number;
 }
 
 const ProgressContext = createContext<ProgressContextValue | undefined>(
@@ -39,6 +40,7 @@ export const ProgressProvider = ({
   const { user, logout } = useAuth();
   const [activePlan, setActivePlan] = useState<ICessationPlan | null>(null);
   const [progressRecords, setProgressRecords] = useState<IProgressRecord[]>([]);
+  const [totalMoneySaved, setTotalMoneySaved] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,18 +79,19 @@ export const ProgressProvider = ({
       setActivePlan(selectedPlan ?? null);
 
       if (selectedPlan) {
-        const records = await ProgressRecordService.getRecords({
+        const { records, total_money_saved } = await ProgressRecordService.getRecords({
           filters: { planId: selectedPlan.id },
         });
-
         const sortedRecords = records.sort(
           (a, b) =>
             new Date(b.record_date).getTime() -
             new Date(a.record_date).getTime()
         );
         setProgressRecords(sortedRecords ?? []);
+        setTotalMoneySaved(total_money_saved ?? 0);
       } else {
         setProgressRecords([]);
+        setTotalMoneySaved(0);
       }
     } catch (err: any) {
       if (err.message?.includes("Invalid or expired token")) {
@@ -115,7 +118,7 @@ export const ProgressProvider = ({
 
   return (
     <ProgressContext.Provider
-      value={{ activePlan, progressRecords, loading, error, refreshData }}
+      value={{ activePlan, progressRecords, loading, error, refreshData, totalMoneySaved }}
     >
       {children}
     </ProgressContext.Provider>

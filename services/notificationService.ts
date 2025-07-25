@@ -1,29 +1,7 @@
-import { gql } from "@apollo/client";
 import client from "@/libs/apollo-client";
 import { NotificationListResponse } from "@/types/api/notification";
-
-const GET_USER_NOTIFICATIONS = gql`
-  query GetUserNotifications($params: PaginationParamsInput!, $filters: NotificationFiltersInput) {
-    userNotifications(params: $params, filters: $filters) {
-      data {
-        id
-        title
-        content
-        status
-        created_at
-      }
-      total
-      page
-      limit
-    }
-  }
-`;
-
-const MARK_MULTIPLE_NOTIFICATIONS_AS_READ = gql`
-  mutation MarkMultipleNotificationsAsRead($ids: [ID!]!) {
-    markMultipleNotificationsAsRead(ids: $ids)
-  }
-`;
+import { GET_USER_NOTIFICATIONS } from '@/graphql/query/getUserNotifications';
+import { MARK_MULTIPLE_NOTIFICATIONS_AS_READ } from '@/graphql/mutation/markMultipleNotificationsAsRead';
 
 export const notificationService = {
   async getUserNotifications(params: any, filters?: any): Promise<NotificationListResponse> {

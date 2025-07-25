@@ -35,7 +35,6 @@ export default function TemplateScreen() {
   const [loading, setLoading] = useState(true);
   const [quizAttempt, setQuizAttempt] = useState<any>(null);
   const [quizLoading, setQuizLoading] = useState(true);
-  // BỘ LỌC MỚI: Thêm state để lưu mức độ đã chọn
   const [selectedFilter, setSelectedFilter] = useState("all");
   const router = useRouter();
   const { user } = useAuth();
@@ -71,7 +70,6 @@ export default function TemplateScreen() {
     try {
       const attempts = await QuizService.getQuizAttempt();
 
-      // Check if user has any completed quiz attempts
       const completedAttempt = Array.isArray(attempts)
         ? attempts.find(attempt => attempt.status === 'COMPLETED' && attempt.completed_at)
         : null;
@@ -181,7 +179,7 @@ export default function TemplateScreen() {
                       Chưa có khảo sát cá nhân
                     </Text>
                     <Text style={styles.quizNotificationSubtitle}>
-                      Làm khảo sát để nhận gợi ý kế hoạch phù hợp nhất với bạn
+                      Làm khảo sát để nhận gợi ý kế hoạch phù hợp và có thể biết được bạn đã tiết kiệm được bao nhiêu tiền nhé!
                     </Text>
                   </View>
                 </View>
@@ -194,7 +192,6 @@ export default function TemplateScreen() {
               </View>
             )}
 
-            {/* BỘ LỌC MỚI: UI cho bộ lọc */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -542,10 +539,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
   },
-  // BỘ LỌC MỚI: Thêm styles cho bộ lọc
   filterContainer: {
     marginBottom: 10,
-    paddingBottom: 5, // Để không bị cắt shadow
+    paddingBottom: 5,
   },
   filterButton: {
     backgroundColor: COLORS.light.CARD_BG,
