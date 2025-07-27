@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import RNPickerSelect from "react-native-picker-select";
 import { ICessationPlan } from "@/types/api/myPlan";
 import { getStatusColor, translateStatus } from "@/utils";
 import COLORS from "@/constants/Colors";
@@ -29,17 +28,9 @@ interface PlanCardProps {
 
 const getAllowedStatusItems = (currentStatus: string) => {
   const statusMap: Record<string, { label: string; value: string }[]> = {
-    PLANNING: [{ label: "Thực hiện", value: "ACTIVE" }],
+    // PLANNING: [{ label: "Bắt đầu thực hiện", value: "ACTIVE" }],
     ACTIVE: [
-      { label: "Tạm dừng", value: "PAUSED" },
-      { label: "Hoàn thành", value: "COMPLETED" },
-      { label: "Từ bỏ", value: "ABANDONED" },
-      { label: "Đã hủy", value: "CANCELLED" },
-    ],
-    PAUSED: [
-      { label: "Tiếp tục", value: "ACTIVE" },
-      { label: "Từ bỏ", value: "ABANDONED" },
-      { label: "Đã hủy", value: "CANCELLED" },
+      { label: "Hủy kế hoạch", value: "CANCELLED" },
     ],
     COMPLETED: [],
     ABANDONED: [],
@@ -59,17 +50,16 @@ const getAllowedStatusItems = (currentStatus: string) => {
 const getAllowedStageStatusItems = (currentStatus: string) => {
   const statusMap: Record<string, { label: string; value: string }[]> = {
     PENDING: [
-      { label: "Đang thực hiện", value: "ACTIVE" },
+      { label: "Bắt đầu thực hiện", value: "ACTIVE" },
       { label: "Bỏ qua", value: "SKIPPED" },
     ],
     ACTIVE: [
       { label: "Hoàn thành", value: "COMPLETED" },
-      { label: "Bỏ qua", value: "SKIPPED" },
     ],
     SKIPPED: [],
     COMPLETED: [],
   };
-
+  // Đảm bảo so sánh đúng kiểu chữ
   const allowedItems = statusMap[currentStatus.toUpperCase()] || [];
   if (!allowedItems.find((item) => item.value === currentStatus)) {
     allowedItems.unshift({
@@ -79,6 +69,18 @@ const getAllowedStageStatusItems = (currentStatus: string) => {
   }
   return allowedItems;
 };
+
+function getStatusIcon(status: string) {
+  switch (status) {
+    case "ACTIVE": return "play-circle-outline";
+    case "PLANNING": return "construct-outline";
+    case "PAUSED": return "pause-circle-outline";
+    case "COMPLETED": return "checkmark-circle-outline";
+    case "ABANDONED": return "close-circle-outline";
+    case "CANCELLED": return "remove-circle-outline";
+    default: return "ellipse-outline";
+  }
+}
 
 const PlanCard: React.FC<PlanCardProps> = ({
   plan,
@@ -90,249 +92,278 @@ const PlanCard: React.FC<PlanCardProps> = ({
   onDeleteStage,
   onCreateNewStage,
 }) => {
+  // Defensive check for plan data
+  if (!plan) {
+    return null;
+  }
+
+  // Check if plan is cancelled - show simplified view
+  const isCancelled = plan.status === "CANCELLED";
+
   return (
-    <View style={styles.planCard}>
+    <View style={[
+      styles.planCard,
+      isCancelled && styles.cancelledPlanCard
+    ]}>
       <TouchableOpacity
         style={styles.cardHeader}
-        onPress={() => setExpandedPlanId(isExpanded ? null : plan.id)}
+        onPress={() => !isCancelled && setExpandedPlanId(isExpanded ? null : plan.id)}
         activeOpacity={0.8}
       >
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {plan.template.name}
-        </Text>
-        <View style={styles.statusBadgeContainer}>
-          {plan.is_custom && (
+        <View style={styles.titleContainer}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {plan.template?.name || "Kế hoạch không có tên"}
+          </Text>
+          {plan.is_custom && !isCancelled && (
             <View style={styles.customBadge}>
-              <Text style={styles.customBadgeText}>Custom</Text>
+              <Text style={styles.customBadgeText}>Tùy chỉnh</Text>
             </View>
           )}
-          {getAllowedStatusItems(plan.status).length > 0 ? (
-            <RNPickerSelect
-              value={plan.status}
-              onValueChange={(value) => onStatusChange(plan.id, value)}
-              items={getAllowedStatusItems(plan.status)}
-              placeholder={{}}
-              style={{
-                inputIOS: {
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: COLORS.light.WHITE,
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 15,
-                  backgroundColor: getStatusColor(plan.status),
-                  overflow: "hidden",
-                },
-                inputAndroid: {
-                  fontSize: 13,
-                  fontWeight: "700",
-                  color: COLORS.light.WHITE,
-                  paddingHorizontal: 12,
-                  paddingVertical: 7,
-                  borderRadius: 15,
-                  backgroundColor: getStatusColor(plan.status),
-                },
-                iconContainer: {
-                  top: 9,
-                  right: 12,
-                },
-              }}
-              useNativeAndroidPickerStyle={false}
+        </View>
+      </TouchableOpacity>
+      <View style={styles.statusBadgeContainer}>
+        <View style={{ width: '100%' }}>
+          <Text style={styles.statusSectionLabel}>Trạng thái hiện tại:</Text>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(plan.status) }]}>
+          <Ionicons name={getStatusIcon(plan.status)} size={16} color="#fff" style={{ marginRight: 6 }} />
+          <Text style={styles.statusBadgeText}>{translateStatus(plan.status)}</Text>
+        </View>
+        {getAllowedStatusItems(plan.status).length > 1 && (
+          <>
+            <View style={{ width: '100%' }}>
+              <Text style={styles.statusSectionLabel}>Chuyển trạng thái:</Text>
+            </View>
+            <View style={styles.statusButtonsContainer}>
+              {getAllowedStatusItems(plan.status)
+                .filter(item => item.value !== plan.status)
+                .map((item) => (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={[
+                      styles.statusButton,
+                      { borderColor: getStatusColor(item.value) },
+                    ]}
+                    onPress={() => onStatusChange(plan.id, item.value as any)}
+                  >
+                    <Ionicons
+                      name={getStatusIcon(item.value)}
+                      size={16}
+                      color={getStatusColor(item.value)}
+                    />
+                    <Text style={[
+                      styles.statusButtonText,
+                      { color: getStatusColor(item.value) },
+                    ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          </>
+        )}
+      </View>
+
+      {!isCancelled && (
+        <>
+          <View style={styles.reasonContainer}>
+            <Ionicons
+              name="bulb-outline"
+              size={18}
+              color={COLORS.light.PRIMARY_YELLOW}
+              style={styles.reasonIcon}
             />
-          ) : (
-            <Text
-              style={[
-                styles.planStatus,
-                { backgroundColor: getStatusColor(plan.status) },
-              ]}
-            >
-              {translateStatus(plan.status)}
+            <Text style={styles.cardReason} numberOfLines={2}>
+              <Text style={styles.reasonLabel}>Lý do: </Text>
+              {plan.reason}
             </Text>
-          )}
-        </View>
-      </TouchableOpacity>
+          </View>
 
-      <Text style={styles.cardReason} numberOfLines={2}>
-        Lý do bắt đầu của bạn là {plan.reason}
-      </Text>
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>Tiến độ hoàn thành</Text>
+              <Text style={styles.progressPercentage}>
+                {plan.completion_percentage.toFixed(0)}%
+              </Text>
+            </View>
+            <View style={styles.progressBarBackground}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  { width: `${plan.completion_percentage}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.progressInfo}>
+              <View style={styles.progressInfoItem}>
+                <Ionicons name="calendar-outline" size={16} color={COLORS.light.GRAY} />
+                <Text style={styles.progressInfoText}>
+                  {plan.days_since_start} ngày đã qua
+                </Text>
+              </View>
+              <View style={styles.progressInfoItem}>
+                <Ionicons name="flag-outline" size={16} color={COLORS.light.GRAY} />
+                <Text style={styles.progressInfoText}>
+                  {Math.max(0, Math.ceil((new Date(plan.target_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} ngày còn lại
+                </Text>
+              </View>
+            </View>
+          </View>
 
-      <View style={styles.progressBarContainer}>
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${plan.completion_percentage}%` },
-            ]}
-          />
-        </View>
-        <Text style={styles.progressText}>
-          {plan.completion_percentage.toFixed(0)}% hoàn thành
-        </Text>
-      </View>
+          <View style={styles.cardInfoGrid}>
+            <View style={[styles.cardInfoItem, styles.startDateItem]}>
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={COLORS.light.PRIMARY_BLUE}
+              />
+              <Text style={styles.cardInfoLabel}>Bắt đầu</Text>
+              <Text style={styles.cardInfoValue}>
+                {plan.start_date
+                  ? new Date(plan.start_date).toLocaleDateString("vi-VN")
+                  : "Chưa có"}
+              </Text>
+            </View>
+            <View style={[styles.cardInfoItem, styles.targetDateItem]}>
+              <Ionicons
+                name="flag-outline"
+                size={20}
+                color={COLORS.light.PRIMARY_YELLOW}
+              />
+              <Text style={styles.cardInfoLabel}>Mục tiêu</Text>
+              <Text style={styles.cardInfoValue}>
+                {plan.target_date
+                  ? new Date(plan.target_date).toLocaleDateString("vi-VN")
+                  : "Chưa có"}
+              </Text>
+            </View>
+          </View>
 
-      <View style={styles.cardInfoGrid}>
-        <View style={[styles.cardInfoItem, styles.startDateItem]}>
-          <Ionicons
-            name="calendar-outline"
-            size={20}
-            color={COLORS.light.PRIMARY_BLUE}
-          />
-          <Text style={styles.cardInfoLabel}>Bắt đầu</Text>
-          <Text style={[styles.cardInfoValue, styles.startDateValue]}>
-            {new Date(plan.start_date).toLocaleDateString("vi-VN")}
-          </Text>
-        </View>
-        <View style={[styles.cardInfoItem, styles.targetDateItem]}>
-          <Ionicons
-            name="flag-outline"
-            size={20}
-            color={COLORS.light.PRIMARY_YELLOW}
-          />
-          <Text style={styles.cardInfoLabel}>Mục tiêu</Text>
-          <Text style={[styles.cardInfoValue, styles.targetDateValue]}>
-            {new Date(plan.target_date).toLocaleDateString("vi-VN")}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.cardInfoItem,
-            styles.daysSinceStartItem,
-            { width: "100%" },
-          ]}
-        >
-          <Ionicons
-            name="hourglass-outline"
-            size={22}
-            color={COLORS.light.ACTIVE}
-          />
-          <Text style={styles.cardInfoLabel}>Thời gian đã qua</Text>
-          <Text style={[styles.cardInfoValue, styles.daysSinceStartValue]}>
-            {plan.days_since_start} ngày
-          </Text>
-        </View>
-      </View>
+          <TouchableOpacity
+            style={styles.stagesToggle}
+            onPress={() => setExpandedPlanId(isExpanded ? null : plan.id)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isExpanded ? "chevron-up-outline" : "chevron-down-outline"}
+              size={22}
+              color={COLORS.light.PRIMARY_BLUE}
+            />
+            <Text style={styles.stagesToggleText}>
+              {isExpanded
+                ? "Thu gọn giai đoạn"
+                : `Xem ${plan.stages.length} giai đoạn`}
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
 
-      <TouchableOpacity
-        style={styles.stagesToggle}
-        onPress={() => setExpandedPlanId(isExpanded ? null : plan.id)}
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name={isExpanded ? "chevron-up-outline" : "chevron-down-outline"}
-          size={22}
-          color={COLORS.light.PRIMARY_BLUE}
-        />
-        <Text style={styles.stagesToggleText}>
-          {isExpanded
-            ? "Thu gọn giai đoạn"
-            : `Xem ${plan.stages.length} giai đoạn`}
-        </Text>
-      </TouchableOpacity>
-
-      {isExpanded && (
+      {isExpanded && !isCancelled && (
         <View style={styles.detailedStagesContainer}>
           {plan.stages.length === 0 ? (
-            <Text style={styles.noStagesText}>
-              Chưa có giai đoạn nào cho kế hoạch này.
-            </Text>
+            <View style={styles.emptyStagesContainer}>
+              <Ionicons name="list-outline" size={48} color={COLORS.light.GRAY} />
+              <Text style={styles.noStagesText}>
+                Chưa có giai đoạn nào cho kế hoạch này.
+              </Text>
+            </View>
           ) : (
-            plan.stages.map((stage) => (
-              <View key={stage.id} style={styles.stageItem}>
-                <Text style={styles.stageTitleText}>
-                  <Text style={{ fontWeight: "bold" }}>
-                    Giai đoạn {stage.stage_order}:{" "}
-                  </Text>
-                  {stage.title}
-                </Text>
-                <Text style={styles.stageActionText}>
-                  <Ionicons
-                    name="bulb-outline"
-                    size={16}
-                    color={COLORS.light.YELLOW}
-                  />{" "}
-                  Hành động: {stage.actions}
-                </Text>
-                <View style={styles.stageInfoRow}>
-                  <Text style={styles.stageDateText}>
+            plan.stages.map((stage) => {
+              return (
+                <View key={stage.id} style={styles.stageItem}>
+                  <View style={styles.stageHeader}>
+                    <View style={styles.stageNumberContainer}>
+                      <Text style={styles.stageNumber}>{stage.stage_order}</Text>
+                    </View>
+                    <Text style={styles.stageTitleText}>
+                      {stage.title}
+                    </Text>
+                  </View>
+                  <Text style={styles.stageActionText}>
                     <Ionicons
-                      name="calendar-outline"
+                      name="bulb-outline"
                       size={16}
-                      color={COLORS.light.GRAY}
-                    />{" "}
-                    {stage.start_date
-                      ? new Date(stage.start_date).toLocaleDateString("vi-VN")
-                      : "Chưa có"}{" "}
-                    -{" "}
-                    {stage.end_date
-                      ? new Date(stage.end_date).toLocaleDateString("vi-VN")
-                      : "Chưa có"}
-                  </Text>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <RNPickerSelect
-                      value={stage.status}
-                      onValueChange={(value) =>
-                        onStageStatusChange(stage.id, value)
-                      }
-                      items={getAllowedStageStatusItems(stage.status)}
-                      placeholder={{}}
-                      disabled={
-                        getAllowedStageStatusItems(stage.status).length <= 1
-                      }
-                      style={{
-                        inputIOS: {
-                          fontSize: 13,
-                          fontWeight: "700",
-                          color: COLORS.light.WHITE,
-                          paddingHorizontal: 12,
-                          paddingVertical: 7,
-                          borderRadius: 15,
-                          backgroundColor: getStatusColor(stage.status),
-                          overflow: "hidden",
-                          textAlign: "center",
-                        },
-                        inputAndroid: {
-                          fontSize: 13,
-                          fontWeight: "700",
-                          color: COLORS.light.WHITE,
-                          paddingHorizontal: 12,
-                          paddingVertical: 7,
-                          borderRadius: 15,
-                          backgroundColor: getStatusColor(stage.status),
-                          textAlign: "center",
-                        },
-                        iconContainer: {
-                          top: 8,
-                          right: 12,
-                        },
-                      }}
-                      useNativeAndroidPickerStyle={false}
+                      color={COLORS.light.YELLOW}
                     />
+                    {stage.actions}
+                  </Text>
+                  <View style={styles.stageInfoRow}>
+                    <Text style={styles.stageDateText}>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={16}
+                        color={COLORS.light.GRAY}
+                      />{" "}
+                      {stage.start_date
+                        ? new Date(stage.start_date).toLocaleDateString("vi-VN")
+                        : "Chưa có"}{" "}
+                      -{" "}
+                      {stage.end_date
+                        ? new Date(stage.end_date).toLocaleDateString("vi-VN")
+                        : "Chưa có"}
+                    </Text>
+                    <View style={{ flex: 1, alignItems: 'flex-end', minWidth: 160 }}>
+                      <View style={{ width: '100%' }}>
+                        <Text style={styles.statusSectionLabel}>Trạng thái hiện tại:</Text>
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(stage.status), marginBottom: 0, marginTop: 2 }]}> 
+                        <Ionicons name={getStatusIcon(stage.status)} size={16} color="#fff" style={{ marginRight: 6 }} />
+                        <Text style={styles.statusBadgeText}>{translateStatus(stage.status)}</Text>
+                      </View>
+                      {getAllowedStageStatusItems(stage.status).length > 1 && stage.status.toUpperCase() !== 'PENDING' && (
+                        <>
+                          <View style={{ width: '100%' }}>
+                            <Text style={styles.statusSectionLabel}>Chuyển trạng thái:</Text>
+                          </View>
+                          <View style={styles.stageStatusButtonsContainer}>
+                            {getAllowedStageStatusItems(stage.status).map((item) => (
+                              <TouchableOpacity
+                                key={item.value}
+                                style={[
+                                  styles.stageStatusButton,
+                                  item.value === stage.status && styles.activeStageStatusButton,
+                                ]}
+                                onPress={() => onStageStatusChange(stage.id, item.value)}
+                                disabled={item.value === stage.status}
+                              >
+                                <Text style={[
+                                  styles.stageStatusButtonText,
+                                  item.value === stage.status && styles.activeStatusButtonText,
+                                ]}>
+                                  {item.label}
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </>
+                      )}
+                    </View>
                   </View>
-                </View>
-                {plan.is_custom && (
-                  <View style={styles.stageActionsContainer}>
-                    <TouchableOpacity
-                      style={styles.stageActionButton}
-                      onPress={() => onEditStage(plan.id, stage)}
-                    >
-                      <Text style={styles.stageActionButtonText}>
-                        Chỉnh sửa
-                      </Text>
-                    </TouchableOpacity>
+                  {plan.is_custom && (
+                    <View style={styles.stageActionsContainer}>
+                      <TouchableOpacity
+                        style={styles.stageActionButton}
+                        onPress={() => onEditStage(plan.id, stage)}
+                      >
+                        <Text style={styles.stageActionButtonText}>
+                          Chỉnh sửa
+                        </Text>
+                      </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[
-                        styles.stageActionButton,
-                        { backgroundColor: COLORS.light.ERROR },
-                      ]}
-                      onPress={() => onDeleteStage(stage.id)}
-                    >
-                      <Text style={styles.stageActionButtonText}>Xoá</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            ))
+                      <TouchableOpacity
+                        style={[
+                          styles.stageActionButton,
+                          { backgroundColor: COLORS.light.ERROR },
+                        ]}
+                        onPress={() => onDeleteStage(stage.id)}
+                      >
+                        <Text style={styles.stageActionButtonText}>Xoá</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              );
+            })
           )}
           {plan.is_custom && (
             <TouchableOpacity
@@ -352,10 +383,10 @@ const PlanCard: React.FC<PlanCardProps> = ({
         </View>
       )}
 
-      {isExpanded && (
+      {isExpanded && !isCancelled && (
         <ProgressRecordsList
           planId={plan.id}
-          coachId={plan.template.coach_id}
+          coachId={plan.template?.coach_id || ""}
         />
       )}
     </View>
@@ -370,25 +401,36 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 0.7,
     borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    shadowColor: COLORS.light.SHADOW,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelledPlanCard: {
+    opacity: 0.7,
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 18,
+  },
+  titleContainer: {
+    flex: 1,
+    marginRight: 15,
   },
   cardTitle: {
     fontSize: 24,
     fontWeight: "800",
     color: COLORS.light.DARK_TEXT,
-    flexShrink: 1,
-    marginRight: 15,
     lineHeight: 30,
+    marginBottom: 8,
   },
   statusBadgeContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    alignItems: "flex-end",
+    marginBottom: 8,
   },
   customBadge: {
     backgroundColor: COLORS.light.BADGE,
@@ -397,6 +439,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     borderColor: COLORS.light.BADGE,
+    alignSelf: "flex-start",
   },
   customBadgeText: {
     color: COLORS.light.WHITE,
@@ -404,25 +447,64 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textTransform: "uppercase",
   },
-  planStatus: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: COLORS.light.WHITE,
-    paddingHorizontal: 14,
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 15,
-    overflow: "hidden",
+    borderRadius: 20,
+    backgroundColor: "#4CAF50", // mặc định, sẽ override bằng getStatusColor
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 6,
+  },
+  statusBadgeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
     textTransform: "capitalize",
+  },
+  reasonContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 25,
+  },
+  reasonIcon: {
+    marginRight: 8,
+    marginTop: 2,
   },
   cardReason: {
     fontSize: 16,
     color: COLORS.light.SUBTEXT,
-    marginBottom: 25,
     lineHeight: 24,
     fontStyle: "italic",
+    flex: 1,
+  },
+  reasonLabel: {
+    fontWeight: "600",
+    color: COLORS.light.DARK_TEXT,
   },
   progressBarContainer: {
     marginBottom: 25,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  progressLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.light.DARK_TEXT,
+  },
+  progressPercentage: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.light.ACTIVE,
   },
   progressBarBackground: {
     height: 12,
@@ -435,22 +517,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.light.ACTIVE,
     borderRadius: 6,
   },
-  progressText: {
+  progressInfo: {
+    marginTop: 12,
+    gap: 8,
+  },
+  progressInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  progressInfoText: {
     fontSize: 14,
     color: COLORS.light.SUBTEXT,
-    textAlign: "right",
-    marginTop: 10,
-    fontWeight: "600",
   },
   cardInfoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    flexDirection: "column", // đổi từ row sang column để mỗi item 1 dòng
+    gap: 10,
     marginBottom: 25,
-    gap: 15,
   },
   cardInfoItem: {
-    width: "100%",
+    width: "100%", // full width
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.light.WHITE,
@@ -458,17 +544,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: COLORS.light.BORDER_GREY,
+    marginBottom: 0, // đã có gap ở grid
   },
   startDateItem: {
     borderColor: COLORS.light.PRIMARY_BLUE,
   },
   targetDateItem: {
     borderColor: COLORS.light.PRIMARY_YELLOW,
-  },
-  daysSinceStartItem: {
-    borderColor: COLORS.light.ACTIVE,
-    width: "100%",
-    justifyContent: "center",
   },
   cardInfoLabel: {
     fontSize: 15,
@@ -487,9 +569,6 @@ const styles = StyleSheet.create({
   },
   targetDateValue: {
     color: COLORS.light.PRIMARY_YELLOW,
-  },
-  daysSinceStartValue: {
-    color: COLORS.light.ACTIVE,
   },
   stagesToggle: {
     flexDirection: "row",
@@ -514,12 +593,15 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.light.BORDER,
   },
+  emptyStagesContainer: {
+    alignItems: "center",
+    paddingVertical: 30,
+  },
   noStagesText: {
     textAlign: "center",
     color: COLORS.light.SUBTEXT,
     fontStyle: "italic",
-    marginTop: 20,
-    marginBottom: 30,
+    marginTop: 15,
     fontSize: 16,
     lineHeight: 24,
   },
@@ -531,16 +613,36 @@ const styles = StyleSheet.create({
     borderWidth: 0.7,
     borderColor: COLORS.light.BORDER_GREY,
   },
+  stageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  stageNumberContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.light.PRIMARY_BLUE,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  stageNumber: {
+    color: COLORS.light.WHITE,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   stageTitleText: {
     fontSize: 18,
     color: COLORS.light.DARK_TEXT,
-    marginBottom: 10,
     lineHeight: 26,
+    flex: 1,
   },
   stageActionText: {
     fontSize: 16,
     color: COLORS.light.DARK_GREY_TEXT,
     marginBottom: 12,
+    lineHeight: 22,
   },
   stageInfoRow: {
     flexDirection: "row",
@@ -589,6 +691,88 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "bold",
     marginLeft: 12,
+  },
+  statusButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 10,
+    marginBottom: 10,
+},
+statusButton: {
+  flexDirection: "row",
+  alignItems: "center",
+  paddingHorizontal: 18,
+  paddingVertical: 10,
+  borderRadius: 20,
+  borderWidth: 1.5,
+  borderColor: "#2196F3",
+  backgroundColor: "#fff",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 4,
+  elevation: 2,
+},
+statusButtonText: {
+  fontWeight: "bold",
+  fontSize: 15,
+  marginLeft: 6,
+},
+  stageStatusButtonsContainer: {
+    flexDirection: "row",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  stageStatusButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#4CAF50', // xanh lá
+    backgroundColor: '#fff',
+    marginLeft: 0,
+  },
+  activeStageStatusButton: {
+    backgroundColor: '#4CAF50', // xanh lá đậm khi active
+    borderColor: '#4CAF50',
+  },
+  stageStatusButtonText: {
+    color: '#4CAF50', // xanh lá cho nút thường
+    fontWeight: '600',
+  },
+  dateBoxStart: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%", // Đảm bảo full width
+    borderWidth: 1,
+    borderColor: COLORS.light.PRIMARY_BLUE,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    backgroundColor: COLORS.light.WHITE,
+  },
+  dateBoxTarget: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%", // Đảm bảo full width
+    borderWidth: 1,
+    borderColor: COLORS.light.PRIMARY_YELLOW,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 8,
+    backgroundColor: COLORS.light.WHITE,
+  },
+  statusSectionLabel: {
+    fontSize: 13,
+    color: COLORS.light.DARK_GREY_TEXT,
+    fontWeight: "600",
+    marginBottom: 2,
+    marginTop: 2,
+    alignSelf: "flex-start",
   },
 });
 

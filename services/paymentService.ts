@@ -15,14 +15,12 @@ export const PaymentService = {
    */
   async createPayment(input: CreatePaymentInput) {
     try {
-      console.log('Creating payment with input:', JSON.stringify(input, null, 2));
       
       const { data } = await client.mutate({
         mutation: CREATE_PAYMENT_MUTATION,
         variables: { input },
       });
       
-      console.log('Payment created successfully:', JSON.stringify(data.createPayment, null, 2));
       
       // Return paymentId along with other data
       return {
@@ -71,7 +69,6 @@ export const PaymentService = {
    */
   async getPaymentById(paymentId: string) {
     try {
-      console.log(`Fetching payment details for ID: ${paymentId}`);
       
       const { data } = await client.query({
         query: GET_PAYMENT_BY_ID,
@@ -80,7 +77,6 @@ export const PaymentService = {
       });
       
       // Updated to use getPaymentById instead of getPayment
-      console.log('Payment data received:', JSON.stringify(data?.getPaymentById || {}, null, 2));
       
       // Return empty data object if payment is null or undefined
       return {

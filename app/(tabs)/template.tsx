@@ -149,6 +149,7 @@ export default function TemplateScreen() {
 
   return (
     <View style={styles.safeArea}>
+      <HomeHeader user={user} />
       <FlatList
         data={filteredTemplates}
         keyExtractor={(item) => item.id}
@@ -166,9 +167,7 @@ export default function TemplateScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={() => (
           <View style={{ paddingHorizontal: 0 }}>
-            <HomeHeader user={user} />
             <Text style={styles.sectionHeader}>Các mẫu kế hoạch cai thuốc</Text>
-
             {/* Quiz Notification */}
             {!quizLoading && !quizAttempt && (
               <View style={styles.quizNotification}>
@@ -191,12 +190,10 @@ export default function TemplateScreen() {
                 </TouchableOpacity>
               </View>
             )}
-
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.filterContainer}
-            // contentContainerStyle={{ paddingHorizontal: 18 }}
             >
               {filterLevels.map((level) => (
                 <TouchableOpacity

@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { IChatRoom } from "@/types/api/chat";
 import { Alert } from "react-native";
 
-interface ChatBubbleRNProps {}
+interface ChatBubbleRNProps { }
 
 const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
   const router = useRouter();
@@ -34,7 +34,6 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
 
       setLoadingChatRoom(true);
       try {
-        // Lấy tất cả chat rooms với lịch sử
         const rooms = await ChatService.getAllChatRoomsWithHistory();
 
         if (rooms && rooms.length > 0) {
@@ -52,7 +51,6 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
     fetchUserChatRoom();
   }, [user, userLoading]);
 
-  // Check subscription status
   useEffect(() => {
     const checkSubscription = async () => {
       if (!user || userLoading) {
@@ -62,10 +60,12 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
 
       try {
         setSubscriptionLoading(true);
+        console.log("[ChatBubbleRN] Gọi API kiểm tra subscription...");
         const hasActiveSub = await SubscriptionService.hasActiveSubscription();
+        console.log("[ChatBubbleRN] Kết quả subscription:", hasActiveSub);
         setHasSubscription(hasActiveSub);
       } catch (error) {
-        console.error('Error checking subscription:', error);
+        console.error('[ChatBubbleRN] Error checking subscription:', error);
         setHasSubscription(false);
       } finally {
         setSubscriptionLoading(false);
@@ -93,7 +93,6 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
       return;
     }
 
-    // Luôn navigate đến màn hình chat rooms list
     router.push("/chat");
   };
 
@@ -110,8 +109,6 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
   }
 
 
-
-  // Chỉ hiển thị ChatBubble khi user đã đăng nhập
   if (!user) {
     return null;
   }
@@ -130,7 +127,7 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
 const styles = StyleSheet.create({
   chatBubble: {
     position: "absolute",
-    bottom: 30,
+    bottom: 70,
     right: 25,
     backgroundColor: COLORS.light.PRIMARY_BLUE,
     borderRadius: 35,

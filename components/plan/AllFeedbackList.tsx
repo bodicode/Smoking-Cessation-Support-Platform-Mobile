@@ -108,9 +108,6 @@ const AllFeedbacksList: React.FC<AllFeedbacksListProps> = ({
                     uri: item.user?.avatar_url,
                   }}
                   style={styles.avatar}
-                  onError={(e) =>
-                    console.log("Image load error:", e.nativeEvent.error)
-                  }
                 />
               ) : (
                 <MaterialCommunityIcons

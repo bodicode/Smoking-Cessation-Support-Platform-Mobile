@@ -422,7 +422,6 @@ export default function CessationPlanListScreen() {
         stageInput={stageInput}
         setStageInput={setStageInput}
       />
-      <ChatBubbleRN />
     </View>
   );
 }

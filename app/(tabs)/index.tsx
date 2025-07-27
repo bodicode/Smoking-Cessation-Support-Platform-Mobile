@@ -187,6 +187,8 @@ export default function HomeScreen() {
     }, [refreshData])
   );
 
+
+
   const { days, hours, minutes, seconds, moneySaved, cigarettesSmokedAgain } =
     useMemo<IProgressStats>(() => {
       if (!activePlan) {
@@ -1326,6 +1328,49 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 15,
+    marginLeft: 2,
+  },
+  abandonedPlanCard: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 18,
+    padding: 28,
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: COLORS.light.PRIMARY_RED_LIGHT,
+    shadowColor: COLORS.light.SHADOW,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  abandonedPlanTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.light.PRIMARY_RED_DARK,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  abandonedPlanDesc: {
+    fontSize: 15,
+    color: COLORS.light.SUBTEXT,
+    marginBottom: 18,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  abandonedPlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.light.PRIMARY_RED,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    marginTop: 6,
+  },
+  abandonedPlanButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
     marginLeft: 2,
   },
 });

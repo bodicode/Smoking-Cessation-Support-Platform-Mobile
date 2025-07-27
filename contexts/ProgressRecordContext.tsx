@@ -61,6 +61,7 @@ export const ProgressProvider = ({
         filters: { user_id: user.id },
       });
 
+      // Chọn plan để hiển thị - ưu tiên ACTIVE, sau đó là các status khác
       let selectedPlan = plans
         .filter((p) => p.status === "ACTIVE")
         .sort(
@@ -69,8 +70,9 @@ export const ProgressProvider = ({
         )[0];
 
       if (!selectedPlan) {
-        const completedPlans = plans.filter((p) => p.status === "COMPLETED");
-        selectedPlan = completedPlans.sort(
+        // Nếu không có ACTIVE, chọn plan mới nhất từ các status khác
+        const otherPlans = plans.filter((p) => p.status !== "ACTIVE");
+        selectedPlan = otherPlans.sort(
           (a, b) =>
             new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
         )[0];
@@ -82,12 +84,22 @@ export const ProgressProvider = ({
         const { records, total_money_saved } = await ProgressRecordService.getRecords({
           filters: { planId: selectedPlan.id },
         });
-        const sortedRecords = records.sort(
+        
+        if (!records || !Array.isArray(records)) {
+          setProgressRecords([]);
+          setTotalMoneySaved(0);
+          return;
+        }
+        
+        // Tạo bản copy để tránh lỗi read-only property
+        const recordsCopy = [...records];
+        const sortedRecords = recordsCopy.sort(
           (a, b) =>
             new Date(b.record_date).getTime() -
             new Date(a.record_date).getTime()
         );
-        setProgressRecords(sortedRecords ?? []);
+        
+        setProgressRecords(sortedRecords);
         setTotalMoneySaved(total_money_saved ?? 0);
       } else {
         setProgressRecords([]);
