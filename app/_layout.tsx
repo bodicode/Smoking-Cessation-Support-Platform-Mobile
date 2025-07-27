@@ -17,6 +17,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import { toastConfig } from "@/toastConfig";
 import { ProgressProvider } from "@/contexts/ProgressRecordContext";
+import ChatBubbleRN from "@/components/plan/ChatBubble";
+import { usePathname } from "expo-router";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -46,12 +48,29 @@ export default function RootLayout() {
     return null;
   }
 
+  const pathname = usePathname();
+
+  // Danh sách các route KHÔNG muốn hiển thị chat bubble
+  const hideChatBubbleRoutes = [
+    "/(auth)/login",
+    "/(auth)/register",
+    "/quiz",
+    "/quiz/result",
+    "/notification",
+    "/membership",
+  ];
+
+  const shouldShowChatBubble = !hideChatBubbleRoutes.some(route =>
+    pathname.startsWith(route)
+  );
+
   return (
     <ApolloProvider client={client}>
       <AuthProvider>
         <ProgressProvider>
           <RootLayoutNav />
         </ProgressProvider>
+        {shouldShowChatBubble && <ChatBubbleRN />}
       </AuthProvider>
       <Toast position="bottom" config={toastConfig} />
     </ApolloProvider>
@@ -66,20 +85,20 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="chat/index" 
-          options={{ 
+        <Stack.Screen
+          name="chat/index"
+          options={{
             title: "Đoạn chat",
-            headerShown: true 
-          }} 
+            headerShown: true
+          }}
         />
-        <Stack.Screen 
-          name="chat/[chatRoomId]" 
-          options={{ 
+        <Stack.Screen
+          name="chat/[chatRoomId]"
+          options={{
             title: "Đoạn chat",
             headerShown: true,
             headerBackTitle: "Quay lại"
-          }} 
+          }}
         />
       </Stack>
     </ThemeProvider>

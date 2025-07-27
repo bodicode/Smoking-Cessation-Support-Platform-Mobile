@@ -108,7 +108,7 @@ export const ChatService = {
         console.error("Subscription error:", err);
       },
       complete: () => {
-        console.log("Subscription completed.");
+        // console.log("Subscription completed.");
       },
     });
 

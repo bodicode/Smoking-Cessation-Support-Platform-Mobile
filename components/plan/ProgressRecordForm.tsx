@@ -89,6 +89,11 @@ export default function ProgressRecordForm({
     }
   }, [initialData]);
 
+  // Refresh data khi component mount để đảm bảo data mới nhất
+  useEffect(() => {
+    refreshData();
+  }, []);
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
@@ -155,7 +160,14 @@ export default function ProgressRecordForm({
         });
       }
 
+      // Refresh toàn bộ data sau khi tạo/cập nhật bản ghi
       await refreshData();
+      
+      // Thêm delay nhỏ để đảm bảo data được cập nhật
+      setTimeout(() => {
+        refreshData();
+      }, 100);
+      
       onSubmit(resultRecord);
     } catch (error: any) {
       Alert.alert("Lỗi", error.message || "Đã xảy ra lỗi khi lưu bản ghi.");

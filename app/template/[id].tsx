@@ -48,7 +48,6 @@ export default function PlanTemplateDetailScreen() {
 
   const [reason, setReason] = useState("");
   const [showReasonInput, setShowReasonInput] = useState(false);
-  const [quizCompleted, setQuizCompleted] = useState<boolean | null>(null);
   const [isCustom, setIsCustom] = useState(true);
   const [hasSubscription, setHasSubscription] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
@@ -108,37 +107,10 @@ export default function PlanTemplateDetailScreen() {
     }
   }, [user]);
 
-  // Khi mở modal, kiểm tra trạng thái quiz
-  useEffect(() => {
-    if (showReasonInput) {
-      (async () => {
-        try {
-          const quizAttempt = await QuizService.getQuizAttempt();
-          const isQuizCompleted = Array.isArray(quizAttempt)
-            ? quizAttempt.some(attempt => attempt.status === 'COMPLETED' && attempt.completed_at)
-            : quizAttempt && quizAttempt.status === 'COMPLETED' && quizAttempt.completed_at;
-          setQuizCompleted(!!isQuizCompleted);
-        } catch {
-          setQuizCompleted(null);
-        }
-      })();
-    }
-  }, [showReasonInput]);
+
 
   const handleCreatePlan = async () => {
     try {
-      // Kiểm tra đã làm quiz chưa
-      const quizAttempt = await QuizService.getQuizAttempt();
-      const isQuizCompleted = Array.isArray(quizAttempt)
-        ? quizAttempt.some(attempt => attempt.status === 'COMPLETED' && attempt.completed_at)
-        : quizAttempt && quizAttempt.status === 'COMPLETED' && quizAttempt.completed_at;
-      if (!isQuizCompleted) {
-        Toast.show({
-          type: 'error',
-          text1: 'Bạn cần hoàn thành khảo sát trước khi sử dụng kế hoạch!',
-        });
-        return;
-      }
       setShowReasonInput(false);
 
       const existingPlans = await CessationPlanService.getCessationPlans({
@@ -536,14 +508,7 @@ export default function PlanTemplateDetailScreen() {
               </View>
             )}
 
-            {quizCompleted === false && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF3E0', borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                <Ionicons name="warning" size={18} color="#FFA500" style={{ marginRight: 8 }} />
-                <Text style={{ color: '#E65100', fontSize: 14, flex: 1 }}>
-                  Bạn nên hoàn thành khảo sát trước khi sử dụng kế hoạch để nhận được gợi ý phù hợp nhất!
-                </Text>
-              </View>
-            )}
+
 
             <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 10 }}>
               Nhập lý do bạn muốn bỏ thuốc

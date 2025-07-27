@@ -126,10 +126,8 @@ function RootLayoutContent() {
 
 export default function TabLayout() {
   return (
-    <AuthProvider>
-      <PlanCountProvider>
-        <RootLayoutContent />
-      </PlanCountProvider>
-    </AuthProvider>
+    <PlanCountProvider>
+      <RootLayoutContent />
+    </PlanCountProvider>
   );
 }
