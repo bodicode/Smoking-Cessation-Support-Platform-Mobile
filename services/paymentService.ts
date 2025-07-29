@@ -1,6 +1,7 @@
 import { CREATE_PAYMENT_MUTATION } from "@/graphql/mutation/createPayment";
 import client from "@/libs/apollo-client";
 import { GET_PAYMENT_BY_ID } from "@/graphql/query/getPaymentById";
+import { GET_MEMBER_PAYMENTS_WITH_TRANSACTIONS } from "@/graphql/query/getMemberPaymentsWithTransactions";
 
 // Update the interface to only include fields accepted by the GraphQL schema
 interface CreatePaymentInput {
@@ -99,5 +100,34 @@ export const PaymentService = {
         data: { price: 0, id: paymentId } // Provide fallback data
       };
     }
-  }
+  },
+
+  /**
+   * Get member payments with transactions
+   */
+  async getMemberPaymentsWithTransactions() {
+    try {
+      const { data } = await client.query({
+        query: GET_MEMBER_PAYMENTS_WITH_TRANSACTIONS,
+        fetchPolicy: "network-only",
+      });
+      return {
+        success: true,
+        data: data?.getMemberPaymentsWithTransactions || [],
+      };
+    } catch (error: any) {
+      console.error('Error getting member payments with transactions:', error);
+      if (error.graphQLErrors) {
+        console.error('GraphQL errors:', JSON.stringify(error.graphQLErrors, null, 2));
+      }
+      if (error.networkError) {
+        console.error('Network error:', error.networkError);
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: [],
+      };
+    }
+  },
 };

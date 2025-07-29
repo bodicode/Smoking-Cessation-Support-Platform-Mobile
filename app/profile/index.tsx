@@ -270,6 +270,25 @@ export default function ProfileScreen() {
               <Text style={styles.logoutText}>Đăng xuất</Text>
             </LinearGradient>
           </TouchableOpacity>
+
+          {/* Transaction Button */}
+          <TouchableOpacity
+            style={styles.transactionBtn}
+            onPress={() => router.push("/transaction")}
+          >
+            <LinearGradient
+              colors={[COLORS.light.PRIMARY_GREEN, COLORS.light.PRIMARY_GREEN + 'CC']}
+              style={styles.transactionGradient}
+            >
+              <Ionicons
+                name="card-outline"
+                size={20}
+                color={COLORS.light.WHITE}
+                style={styles.logoutIcon}
+              />
+              <Text style={styles.logoutText}>Giao dịch</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -496,5 +515,23 @@ const styles = StyleSheet.create({
     color: COLORS.light.WHITE,
     fontWeight: "bold",
     fontSize: 16,
+  },
+  // Transaction button styles
+  transactionBtn: {
+    width: "100%",
+    marginTop: 10,
+  },
+  transactionGradient: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 15,
+    shadowColor: COLORS.light.PRIMARY_GREEN,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
   },
 });
