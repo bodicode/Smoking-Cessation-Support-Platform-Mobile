@@ -43,9 +43,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress, unreadCount
               >
                 <View style={styles.avatarWrap}>
                   <View style={styles.avatarCircle}>
-                    {user.avatarUrl ? (
+                    {user.avatar_url ? (
                       <Image
-                        source={{ uri: user.avatarUrl }}
+                        source={{ uri: user.avatar_url }}
                         style={{ width: 32, height: 32, borderRadius: 16 }}
                       />
                     ) : (

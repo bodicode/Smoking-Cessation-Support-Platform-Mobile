@@ -144,7 +144,7 @@ export default function MembershipScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
           <Image
-            source={require("../assets/images/logo.png")}
+            source={require("../../assets/images/logo.png")}
             style={styles.crownImage}
             resizeMode="contain"
           />

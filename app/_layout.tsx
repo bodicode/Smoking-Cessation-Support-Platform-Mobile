@@ -34,6 +34,8 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
+  const pathname = usePathname(); // <-- Move this up, before any return
+
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -47,8 +49,6 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
-
-  const pathname = usePathname();
 
   // Danh sách các route KHÔNG muốn hiển thị chat bubble
   const hideChatBubbleRoutes = [
