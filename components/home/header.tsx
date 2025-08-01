@@ -16,8 +16,6 @@ type HomeHeaderProps = {
 const AVATAR_SIZE = 42;
 const PROGRESS_SIZE = 48;
 
-// ... giữ nguyên import như cũ
-
 const HomeHeader: React.FC<HomeHeaderProps> = ({
   user,
   onCrownPress,
@@ -85,6 +83,16 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
         {/* Right: Icon Buttons */}
         <View style={styles.rightBox}>
+          {/* Chat icon button - leftmost, rounded-rectangle, same height as other icons */}
+          <TouchableOpacity
+            style={styles.chatBtn}
+            onPress={() => router.push("/chat")}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="chat-outline" size={22} color={COLORS.light.PRIMARY_BLUE} />
+            <Text style={styles.chatBtnText}>Chat</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={handleCrownPress}
@@ -142,6 +150,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  chatBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E0F7FA",
+    paddingHorizontal: 16,
+    marginLeft: 0,
+    marginRight: 2,
+    shadowColor: "#16F2A8",
+    shadowOpacity: 0.10,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  chatBtnText: {
+    marginLeft: 7,
+    color: COLORS.light.PRIMARY_BLUE,
+    fontWeight: "bold",
+    fontSize: 15,
   },
   avatarInfo: {
     flexDirection: "row",

@@ -111,6 +111,8 @@ export default function HomeScreen() {
   >(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+
   const initialDailyCigarettes = 20;
   const costPerCigarette = 50000 / 20;
 
@@ -135,6 +137,32 @@ export default function HomeScreen() {
       setUnreadCount(data.data.filter(n => n.status === "SENT").length);
     });
   }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      UserService.getUserSubscription()
+        .then(sub => {
+          console.log("User subscription:", sub);
+          let isActive = false;
+          if (Array.isArray(sub)) {
+            isActive = sub.some(s => typeof s.status === "string" && s.status.toLowerCase() === "active");
+          } else if (sub && typeof sub.status === "string") {
+            isActive = sub.status.toLowerCase() === "active";
+          }
+          setHasActiveSubscription(isActive);
+        })
+        .catch(error => {
+          // Only suppress error if it's "Subscription not found"
+          if (error?.message && error.message.includes("Subscription not found")) {
+            setHasActiveSubscription(false);
+            return;
+          }
+          // Otherwise, log other errors
+          console.error('Error fetching user subscription:', error);
+          setHasActiveSubscription(false);
+        });
+    }
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -580,19 +608,21 @@ export default function HomeScreen() {
           </>
         ) : (
           <>
-            <View style={styles.membershipInviteCard}>
-              <Ionicons name="star-outline" size={40} color={COLORS.light.PRIMARY_YELLOW_DARK} style={{ marginBottom: 10 }} />
-              <Text style={styles.membershipInviteTitle}>Nâng cấp thành viên để nhận nhiều quyền lợi hơn!</Text>
-              <Text style={styles.membershipInviteDesc}>Trở thành thành viên để cá nhân hóa kế hoạch, chat với coach và nhận nhiều ưu đãi đặc biệt.</Text>
-              <TouchableOpacity
-                style={styles.membershipInviteButton}
-                onPress={() => router.push('/membership')}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="rocket-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.membershipInviteButtonText}>Đăng ký thành viên</Text>
-              </TouchableOpacity>
-            </View>
+            {!hasActiveSubscription && (
+              <View style={styles.membershipInviteCard}>
+                <Ionicons name="star-outline" size={40} color={COLORS.light.PRIMARY_YELLOW_DARK} style={{ marginBottom: 10 }} />
+                <Text style={styles.membershipInviteTitle}>Nâng cấp thành viên để nhận nhiều quyền lợi hơn!</Text>
+                <Text style={styles.membershipInviteDesc}>Trở thành thành viên để cá nhân hóa kế hoạch, chat với coach và nhận nhiều ưu đãi đặc biệt.</Text>
+                <TouchableOpacity
+                  style={styles.membershipInviteButton}
+                  onPress={() => router.push('/membership')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="rocket-outline" size={20} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.membershipInviteButtonText}>Đăng ký thành viên</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.quizInviteCard}>
               <Ionicons name="heart-circle-outline" size={48} color={COLORS.light.PRIMARY_GREEN} style={{ marginBottom: 12 }} />
               <Text style={styles.quizInviteTitle}>Bạn chưa có kế hoạch nào</Text>

@@ -89,9 +89,15 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
       }
       onSuccess();
     } catch (error: any) {
+      console.log("Feedback create error:", error); // log out error
+      let errorMsg = "";
+      if (error?.message) {
+        errorMsg = error.message;
+      } else if (typeof error === "string") {
+        errorMsg = error;
+      }
       if (
-        error.message &&
-        error.message.includes(
+        errorMsg.includes(
           "You have already submitted active feedback for this template"
         )
       ) {
@@ -100,6 +106,21 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
           text1: "Bạn đã gửi feedback rồi!",
           text2: "Vui lòng chỉnh sửa feedback hiện có của bạn.",
           visibilityTime: 4000,
+        });
+      } else if (
+        errorMsg.includes(
+          "You can only provide feedback for templates from plans where you have completed at least one stage"
+        )
+      ) {
+        Toast.show({
+          type: "error",
+          text1: "Phải hoàn thành ít nhất 1 giai đoạn",
+        });
+      } else if (errorMsg) {
+        Toast.show({
+          type: "error",
+          text1: "Lỗi!",
+          text2: errorMsg,
         });
       } else {
         Toast.show({

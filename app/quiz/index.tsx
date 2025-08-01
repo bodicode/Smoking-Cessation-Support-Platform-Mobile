@@ -260,7 +260,7 @@ const QuizPage: React.FC = () => {
 
   if (loading || !quiz || showRecommendationLoading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.light.ACTIVE} />
       </SafeAreaView>
     );
@@ -270,25 +270,43 @@ const QuizPage: React.FC = () => {
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
 
   return (
-    <SafeAreaView style={{ flex: 1, padding: 16 }}>
+    <SafeAreaView style={styles.safeArea}>
       <Stack.Screen options={{ title: 'Khảo sát' }} />
-      <ScrollView style={{ flex: 1 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{currentQuestion.question_text}</Text>
-        {renderQuestion(currentQuestion)}
+      <ScrollView style={styles.scroll}>
+        <View style={styles.questionCard}>
+          <Text style={styles.questionText}>{currentQuestion.question_text}</Text>
+          {renderQuestion(currentQuestion)}
+        </View>
       </ScrollView>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
+      <View style={styles.buttonRow}>
         {currentQuestionIndex > 0 && (
-          <TouchableOpacity onPress={() => setCurrentQuestionIndex(currentQuestionIndex - 1)} style={{ padding: 12, backgroundColor: '#ddd', borderRadius: 8 }}>
-            <Text>Trước</Text>
+          <TouchableOpacity
+            onPress={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}
+            style={[styles.navButton, styles.prevButton]}
+          >
+            <Text style={styles.prevButtonText}>Trước</Text>
           </TouchableOpacity>
         )}
         {!isLastQuestion ? (
-          <TouchableOpacity onPress={goToNext} style={{ padding: 12, backgroundColor: COLORS.light.ACTIVE, borderRadius: 8 }}>
-            <Text style={{ color: '#fff' }}>Tiếp theo</Text>
+          <TouchableOpacity
+            onPress={goToNext}
+            style={[styles.navButton, styles.nextButton]}
+          >
+            <Text style={styles.navButtonText}>Tiếp theo</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity onPress={handleSubmit} disabled={submitting} style={{ padding: 12, backgroundColor: COLORS.light.ACTIVE, borderRadius: 8, opacity: submitting ? 0.6 : 1 }}>
-            <Text style={{ color: '#fff' }}>{submitting ? 'Đang gửi...' : 'Gửi'}</Text>
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={submitting}
+            style={[
+              styles.navButton,
+              styles.submitButton,
+              submitting && styles.disabledButton,
+            ]}
+          >
+            <Text style={styles.navButtonText}>
+              {submitting ? 'Đang gửi...' : 'Gửi'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -297,72 +315,168 @@ const QuizPage: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.light.BG,
+    paddingHorizontal: 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.light.BG,
+  },
+  scroll: {
+    flex: 1,
+    paddingHorizontal: 0,
+  },
+  questionCard: {
+    backgroundColor: COLORS.light.CARD_BG,
+    borderRadius: 18,
+    padding: 22,
+    margin: 18,
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  questionText: {
+    fontSize: 19,
+    fontWeight: 'bold',
+    color: COLORS.light.TEXT,
+    marginBottom: 18,
+    textAlign: 'left',
+    lineHeight: 26,
+  },
   textInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 18,
+    fontSize: 16,
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
   },
   optionsContainer: {
-    gap: 12,
+    gap: 14,
+    marginBottom: 10,
   },
   optionButton: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
   },
   selectedOption: {
     backgroundColor: COLORS.light.ACTIVE,
+    borderColor: COLORS.light.ACTIVE,
   },
   optionText: {
     fontSize: 16,
+    color: COLORS.light.TEXT,
+    textAlign: 'left',
   },
   selectedOptionText: {
     color: '#fff',
+    fontWeight: 'bold',
   },
   scaleContainer: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
+    marginBottom: 10,
   },
   scaleButton: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 0,
     flex: 1,
     alignItems: 'center',
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
   },
   selectedScale: {
     backgroundColor: COLORS.light.ACTIVE,
+    borderColor: COLORS.light.ACTIVE,
   },
   scaleText: {
     fontSize: 16,
+    color: COLORS.light.TEXT,
   },
   selectedScaleText: {
     color: '#fff',
+    fontWeight: 'bold',
   },
   booleanContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 14,
+    marginBottom: 10,
   },
   booleanButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
   },
   selectedBoolean: {
     backgroundColor: COLORS.light.ACTIVE,
+    borderColor: COLORS.light.ACTIVE,
   },
   booleanText: {
     fontSize: 16,
+    color: COLORS.light.TEXT,
   },
   selectedBooleanText: {
     color: '#fff',
+    fontWeight: 'bold',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 12,
+    padding: 18,
+    backgroundColor: COLORS.light.BG,
+  },
+  navButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    minWidth: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+  },
+  prevButton: {
+    backgroundColor: COLORS.light.LIGHT_GREY_BG,
+    borderWidth: 1,
+    borderColor: COLORS.light.BORDER_LIGHT_GREY,
+  },
+  nextButton: {
+    backgroundColor: COLORS.light.ACTIVE,
+  },
+  submitButton: {
+    backgroundColor: COLORS.light.PRIMARY_GREEN,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  navButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  prevButtonText: {
+    color: COLORS.light.TEXT, // Make back button text visible
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

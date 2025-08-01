@@ -27,6 +27,7 @@ import Toast from "react-native-toast-message";
 import { FeedbackService } from "@/services/feedbackService"; // Cần lại để fetch feedback
 import { ChatService } from "@/services/chatService";
 import { SubscriptionService } from "@/services/subscriptionService";
+import { UserService } from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuizService } from '@/services/quizService';
 
@@ -86,10 +87,17 @@ export default function PlanTemplateDetailScreen() {
     const checkSubscription = async () => {
       try {
         setSubscriptionLoading(true);
-        const hasActiveSub = await SubscriptionService.hasActiveSubscription();
-        setHasSubscription(hasActiveSub);
+        // Use UserService.getUserSubscription to get subscription object
+        const sub = await UserService.getUserSubscription();
+        let isActive = false;
+        if (Array.isArray(sub)) {
+          isActive = sub.some(s => typeof s.status === "string" && s.status.toLowerCase() === "active");
+        } else if (sub && typeof sub.status === "string") {
+          isActive = sub.status.toLowerCase() === "active";
+        }
+        setHasSubscription(isActive);
 
-        if (!hasActiveSub) {
+        if (!isActive) {
           setIsCustom(false);
         }
       } catch (error) {
