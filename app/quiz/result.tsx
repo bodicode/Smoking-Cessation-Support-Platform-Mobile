@@ -13,16 +13,14 @@ import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import COLORS from '@/constants/Colors';
 import { QuizService } from '@/services/quizService';
-import { PlanTemplateService } from '@/services/templatePlanService';
-import { QuizAttempt, AIRecommendation } from '@/types/api/quiz';
+import { QuizAttempt, TemplateMatchingResult } from '@/types/api/quiz';
 
 const QuizResultPage: React.FC = () => {
   const router = useRouter();
   const [quizAttempt, setQuizAttempt] = useState<QuizAttempt | null>(null);
-  const [aiRecommendation, setAiRecommendation] = useState<AIRecommendation | null>(null);
-  const [recommendedTemplate, setRecommendedTemplate] = useState<any>(null);
+  const [templateMatchingResults, setTemplateMatchingResults] = useState<TemplateMatchingResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [matchingLoading, setMatchingLoading] = useState(false);
 
   useEffect(() => {
     loadQuizResult();
@@ -32,7 +30,6 @@ const QuizResultPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Get quiz attempt
       const attempt = await QuizService.getQuizAttempt();
       if (!attempt) {
         Alert.alert('Thông báo', 'Không tìm thấy kết quả khảo sát.');
@@ -43,8 +40,7 @@ const QuizResultPage: React.FC = () => {
       setQuizAttempt(attempt);
       setLoading(false);
 
-      // Load AI recommendation in background
-      loadAIRecommendation();
+      loadTemplateMatchingResults();
     } catch (error) {
       console.error('Error loading quiz result:', error);
       Alert.alert('Lỗi', 'Không thể tải kết quả khảo sát. Vui lòng thử lại.');
@@ -52,44 +48,35 @@ const QuizResultPage: React.FC = () => {
     }
   };
 
-  const loadAIRecommendation = async () => {
+  const loadTemplateMatchingResults = async () => {
     try {
-      setAiLoading(true);
-
-      // Get AI recommendation
-      const recommendation = await QuizService.getAIRecommendation();
-      setAiRecommendation(recommendation);
-
-      // Get template details if recommendation exists
-      if (recommendation && recommendation.recommendedTemplate) {
-        try {
-          const template = await PlanTemplateService.getTemplateById(recommendation.recommendedTemplate);
-          setRecommendedTemplate(template);
-        } catch (templateError) {
-          console.error('Error loading template details:', templateError);
-          // Continue without template details
-        }
-      }
-    } catch (aiError) {
-      console.error('Error loading AI recommendation:', aiError);
-      // Continue without AI recommendation
-      setAiRecommendation(null);
+      setMatchingLoading(true);
+      const results = await QuizService.getMyTemplateMatchingResults();
+      const sortedResults = [...results].sort((a, b) => b.matchingScore - a.matchingScore);
+      setTemplateMatchingResults(sortedResults);
+    } catch (error) {
+      console.error('Error loading template matching results:', error);
+      setTemplateMatchingResults([]);
     } finally {
-      setAiLoading(false);
+      setMatchingLoading(false);
     }
   };
 
-  const handleStartPlan = () => {
-    // Navigate to plan creation with recommended template
-    if (aiRecommendation) {
-      router.push(`/template/${aiRecommendation.recommendedTemplate}` as any);
+  const getRecommendationLevelText = (level: string) => {
+    switch (level) {
+      case 'HIGH':
+        return 'Cao';
+      case 'MEDIUM':
+        return 'Trung bình';
+      case 'LOW':
+        return 'Thấp';
+      default:
+        return level;
     }
   };
 
   const handleViewAlternatives = () => {
-    // Show alternative templates
     router.push('/(tabs)/template');
-    
   };
 
   if (loading) {
@@ -126,13 +113,12 @@ const QuizResultPage: React.FC = () => {
           },
         }}
       />
-            <View style={styles.container}>
-        <ScrollView 
-          style={styles.content} 
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.content}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Completion Status */}
           <View style={styles.statusContainer}>
             <View style={styles.statusIcon}>
               <MaterialCommunityIcons name="check-circle" size={48} color="#4CAF50" />
@@ -143,102 +129,81 @@ const QuizResultPage: React.FC = () => {
             </Text>
           </View>
 
-          {/* AI Recommendation */}
           <View style={styles.recommendationContainer}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Gợi ý từ AI</Text>
-              {aiLoading && (
+              <Text style={styles.sectionTitle}>Gợi ý mẫu đến từ AI</Text>
+              {matchingLoading && (
                 <View style={styles.aiLoadingContainer}>
                   <ActivityIndicator size="small" color={COLORS.light.ACTIVE} />
                   <Text style={styles.aiLoadingText}>Đang phân tích...</Text>
                 </View>
               )}
             </View>
-            
-            {aiRecommendation ? (
+
+            {templateMatchingResults.length > 0 ? (
               <>
-                <View style={styles.confidenceContainer}>
-                  <Text style={styles.confidenceLabel}>Độ tin cậy:</Text>
-                  <Text style={styles.confidenceValue}>
-                    {Math.round(aiRecommendation.confidence * 100)}%
-                  </Text>
-                </View>
-
-                <View style={styles.templateContainer}>
-                  <Text style={styles.templateLabel}>Template được đề xuất:</Text>
-                  <Text style={styles.templateName}>
-                    {recommendedTemplate ? recommendedTemplate.name : aiRecommendation.recommendedTemplate}
-                  </Text>
-                  {recommendedTemplate && (
-                    <Text style={styles.templateDescription}>
-                      {recommendedTemplate.description}
-                    </Text>
-                  )}
-                </View>
-
-                {/* Reasoning */}
-                <View style={styles.reasoningContainer}>
-                  <Text style={styles.reasoningTitle}>Lý do đề xuất:</Text>
-                  
-                  {aiRecommendation.reasoning.considerations.length > 0 && (
-                    <View style={styles.reasoningSection}>
-                      <Text style={styles.reasoningSubtitle}>Các yếu tố được xem xét:</Text>
-                      {aiRecommendation.reasoning.considerations.map((item, index) => (
-                        <Text key={index} style={styles.reasoningItem}>• {item}</Text>
-                      ))}
+                {templateMatchingResults.map((result, index) => (
+                  <TouchableOpacity
+                    key={result.id}
+                    style={styles.templateResultContainer}
+                    onPress={() => router.push(`/quiz/matching-result/${result.id}`)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.templateName}>{result.template.name}</Text>
+                    <Text style={styles.templateDescription}>{result.template.description}</Text>
+                    <View style={styles.scoreContainer}>
+                      <Text style={styles.scoreLabel}>Điểm phù hợp:</Text>
+                      <Text style={styles.scoreValue}>{result.matchingScore}%</Text>
                     </View>
-                  )}
-
-                  {aiRecommendation.reasoning.matchingFactors.length > 0 && (
-                    <View style={styles.reasoningSection}>
-                      <Text style={styles.reasoningSubtitle}>Yếu tố phù hợp:</Text>
-                      {aiRecommendation.reasoning.matchingFactors.map((item, index) => (
-                        <Text key={index} style={styles.reasoningItem}>• {item}</Text>
-                      ))}
+                    <View style={styles.recommendationLevelContainer}>
+                      <Text style={styles.recommendationLevelLabel}>Mức độ khuyến nghị:</Text>
+                      <Text style={styles.recommendationLevelValue}>{getRecommendationLevelText(result.recommendationLevel)}</Text>
                     </View>
-                  )}
-
-                  {aiRecommendation.reasoning.suggestions.length > 0 && (
-                    <View style={styles.reasoningSection}>
-                      <Text style={styles.reasoningSubtitle}>Gợi ý:</Text>
-                      {aiRecommendation.reasoning.suggestions.map((item, index) => (
-                        <Text key={index} style={styles.reasoningItem}>• {item}</Text>
-                      ))}
-                    </View>
-                  )}
-
-                  {aiRecommendation.reasoning.risks.length > 0 && (
-                    <View style={styles.reasoningSection}>
-                      <Text style={styles.reasoningSubtitle}>Lưu ý:</Text>
-                      {aiRecommendation.reasoning.risks.map((item, index) => (
-                        <Text key={index} style={[styles.reasoningItem, styles.riskItem]}>• {item}</Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
+                    {result.matchingFactors.reasoning.matchingFactors.length > 0 && (
+                      <View style={styles.matchingFactorsContainer}>
+                        <Text style={styles.matchingFactorsTitle}>Yếu tố phù hợp:</Text>
+                        {result.matchingFactors.reasoning.matchingFactors.map((factor, factorIndex) => (
+                          <Text key={factorIndex} style={styles.matchingFactorItem}>
+                            • {factor}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {result.matchingFactors.reasoning.suggestions.length > 0 && (
+                      <View style={styles.suggestionsContainer}>
+                        <Text style={styles.suggestionsTitle}>Gợi ý:</Text>
+                        {result.matchingFactors.reasoning.suggestions.map((suggestion, suggestionIndex) => (
+                          <Text key={suggestionIndex} style={styles.suggestionItem}>
+                            • {suggestion}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {result.matchingFactors.reasoning.risks.length > 0 && (
+                      <View style={styles.risksContainer}>
+                        <Text style={styles.risksTitle}>Lưu ý:</Text>
+                        {result.matchingFactors.reasoning.risks.map((risk, riskIndex) => (
+                          <Text key={riskIndex} style={styles.riskItem}>
+                            • {risk}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
               </>
             ) : (
               <View style={styles.aiPlaceholder}>
                 <Text style={styles.aiPlaceholderText}>
-                  {aiLoading ? 'Đang phân tích dữ liệu...' : 'Chưa có gợi ý từ AI'}
+                  {matchingLoading ? 'Đang phân tích dữ liệu...' : 'Chưa có kết quả phân tích'}
                 </Text>
               </View>
             )}
           </View>
         </ScrollView>
 
-        {/* Action Buttons */}
         <View style={styles.footer}>
-          {aiRecommendation && (
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleStartPlan}
-            >
-              <Text style={styles.primaryButtonText}>Xem chi tiết kế hoạch được gợi ý</Text>
-            </TouchableOpacity>
-          )}
-
-          {aiRecommendation && aiRecommendation.alternativeTemplates.length > 0 && (
+          {templateMatchingResults.length > 1 && (
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={handleViewAlternatives}
@@ -246,15 +211,14 @@ const QuizResultPage: React.FC = () => {
               <Text style={styles.secondaryButtonText}>Xem các mẫu khác</Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={[styles.secondaryButton, { marginTop: 8 }]}
+            onPress={() => router.replace('/quiz?redo=1')}
+          >
+            <Text style={styles.secondaryButtonText}>Làm lại khảo sát</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.secondaryButton, { marginTop: 8 }]}
-          onPress={() => router.replace('/quiz?redo=1')}
-        >
-          <Text style={styles.secondaryButtonText}>Làm lại khảo sát</Text>
-        </TouchableOpacity>
       </View>
     </>
   );
@@ -327,7 +291,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
@@ -354,105 +318,110 @@ const styles = StyleSheet.create({
     color: COLORS.light.INACTIVE,
     textAlign: 'center',
   },
-  confidenceContainer: {
+  templateResultContainer: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.light.ACTIVE,
+  },
+  templateHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#F0F8FF',
-    borderRadius: 8,
-  },
-  confidenceLabel: {
-    fontSize: 16,
-    color: COLORS.light.TEXT,
-    fontWeight: '500',
-  },
-  confidenceValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.light.ACTIVE,
-  },
-  templateContainer: {
-    marginBottom: 4,
-  },
-  templateLabel: {
-    fontSize: 16,
-    color: COLORS.light.TEXT,
     marginBottom: 8,
   },
   templateName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: COLORS.light.ACTIVE,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#E8F5E8',
-    borderRadius: 8,
-    marginBottom: 8,
+    flex: 1,
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: COLORS.light.TEXT,
+    marginRight: 8,
+  },
+  scoreValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.light.ACTIVE,
   },
   templateDescription: {
     fontSize: 14,
     color: COLORS.light.INACTIVE,
     lineHeight: 20,
-    paddingHorizontal: 16,
-  },
-  reasoningContainer: {
-    marginTop: 8,
-  },
-  reasoningTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.light.TEXT,
-    marginBottom: 12,
-  },
-  reasoningSection: {
-    marginBottom: 16,
-  },
-  reasoningSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.light.TEXT,
     marginBottom: 8,
   },
-  reasoningItem: {
-    fontSize: 14,
-    color: COLORS.light.TEXT,
-    marginBottom: 4,
-    lineHeight: 20,
-  },
-  riskItem: {
-    color: '#D32F2F',
-  },
-  summaryContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  summaryItem: {
+  recommendationLevelContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
     paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 6,
   },
-  summaryLabel: {
-    fontSize: 16,
+  recommendationLevelLabel: {
+    fontSize: 14,
     color: COLORS.light.TEXT,
+    fontWeight: '500',
   },
-  summaryValue: {
-    fontSize: 16,
+  recommendationLevelValue: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: COLORS.light.ACTIVE,
+    color: '#4CAF50',
+  },
+  matchingFactorsContainer: {
+    marginTop: 12,
+  },
+  matchingFactorsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.light.TEXT,
+    marginBottom: 6,
+  },
+  matchingFactorItem: {
+    fontSize: 13,
+    color: COLORS.light.TEXT,
+    marginBottom: 2,
+    lineHeight: 18,
+  },
+  suggestionsContainer: {
+    marginTop: 12,
+  },
+  suggestionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.light.TEXT,
+    marginBottom: 6,
+  },
+  suggestionItem: {
+    fontSize: 13,
+    color: COLORS.light.TEXT,
+    marginBottom: 2,
+    lineHeight: 18,
+  },
+  risksContainer: {
+    marginTop: 12,
+  },
+  risksTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#D32F2F',
+    marginBottom: 6,
+  },
+  riskItem: {
+    fontSize: 13,
+    color: '#D32F2F',
+    marginBottom: 2,
+    lineHeight: 18,
   },
   footer: {
     paddingHorizontal: 16,

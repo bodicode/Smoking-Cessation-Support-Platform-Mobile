@@ -5,6 +5,7 @@ import { ICessationPlan } from "@/types/api/myPlan";
 import { getStatusColor, translateStatus } from "@/utils";
 import COLORS from "@/constants/Colors";
 import ProgressRecordsList from "@/components/plan/ProgressRecordList";
+import UserFeedbackSection from "./UserFeedbackSection";
 
 interface PlanCardProps {
   plan: ICessationPlan;
@@ -24,6 +25,7 @@ interface PlanCardProps {
   onEditStage: (planId: string, stage: any) => void;
   onDeleteStage: (stageId: string) => void;
   onCreateNewStage: (plan: ICessationPlan) => void;
+  onFeedbackChange: () => void;
 }
 
 const getAllowedStatusItems = (currentStatus: string) => {
@@ -49,17 +51,16 @@ const getAllowedStatusItems = (currentStatus: string) => {
 
 const getAllowedStageStatusItems = (currentStatus: string) => {
   const statusMap: Record<string, { label: string; value: string }[]> = {
-    PENDING: [
-      { label: "Bắt đầu thực hiện", value: "ACTIVE" },
-      { label: "Bỏ qua", value: "SKIPPED" },
-    ],
+    // PENDING: [
+    //   { label: "Bắt đầu thực hiện", value: "ACTIVE" },
+    //   { label: "Bỏ qua", value: "SKIPPED" },
+    // ],
     ACTIVE: [
       { label: "Hoàn thành", value: "COMPLETED" },
     ],
     SKIPPED: [],
     COMPLETED: [],
   };
-  // Đảm bảo so sánh đúng kiểu chữ
   const allowedItems = statusMap[currentStatus.toUpperCase()] || [];
   if (!allowedItems.find((item) => item.value === currentStatus)) {
     allowedItems.unshift({
@@ -91,13 +92,12 @@ const PlanCard: React.FC<PlanCardProps> = ({
   onEditStage,
   onDeleteStage,
   onCreateNewStage,
+  onFeedbackChange,
 }) => {
-  // Defensive check for plan data
   if (!plan) {
     return null;
   }
 
-  // Check if plan is cancelled - show simplified view
   const isCancelled = plan.status === "CANCELLED";
 
   return (
@@ -122,43 +122,43 @@ const PlanCard: React.FC<PlanCardProps> = ({
         </View>
       </TouchableOpacity>
       <View style={styles.statusBadgeContainer}>
-        <View style={{ width: '100%' }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Text style={styles.statusSectionLabel}>Trạng thái hiện tại:</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(plan.status) }]}>
-          <Ionicons name={getStatusIcon(plan.status)} size={16} color="#fff" style={{ marginRight: 6 }} />
-          <Text style={styles.statusBadgeText}>{translateStatus(plan.status)}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(plan.status) }]}>
+            <Ionicons name={getStatusIcon(plan.status)} size={16} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.statusBadgeText}>{translateStatus(plan.status)}</Text>
+          </View>
         </View>
         {getAllowedStatusItems(plan.status).length > 1 && (
           <>
-            <View style={{ width: '100%' }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, gap: 8 }}>
               <Text style={styles.statusSectionLabel}>Chuyển trạng thái:</Text>
-            </View>
-            <View style={styles.statusButtonsContainer}>
-              {getAllowedStatusItems(plan.status)
-                .filter(item => item.value !== plan.status)
-                .map((item) => (
-                  <TouchableOpacity
-                    key={item.value}
-                    style={[
-                      styles.statusButton,
-                      { borderColor: getStatusColor(item.value) },
-                    ]}
-                    onPress={() => onStatusChange(plan.id, item.value as any)}
-                  >
-                    <Ionicons
-                      name={getStatusIcon(item.value)}
-                      size={16}
-                      color={getStatusColor(item.value)}
-                    />
-                    <Text style={[
-                      styles.statusButtonText,
-                      { color: getStatusColor(item.value) },
-                    ]}>
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.statusButtonsContainer}>
+                {getAllowedStatusItems(plan.status)
+                  .filter(item => item.value !== plan.status)
+                  .map((item) => (
+                    <TouchableOpacity
+                      key={item.value}
+                      style={[
+                        styles.statusButton,
+                        { borderColor: getStatusColor(item.value) },
+                      ]}
+                      onPress={() => onStatusChange(plan.id, item.value as any)}
+                    >
+                      <Ionicons
+                        name={getStatusIcon(item.value)}
+                        size={16}
+                        color={getStatusColor(item.value)}
+                      />
+                      <Text style={[
+                        styles.statusButtonText,
+                        { color: getStatusColor(item.value) },
+                      ]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
             </View>
           </>
         )}
@@ -302,43 +302,47 @@ const PlanCard: React.FC<PlanCardProps> = ({
                         ? new Date(stage.end_date).toLocaleDateString("vi-VN")
                         : "Chưa có"}
                     </Text>
-                    <View style={{ flex: 1, alignItems: 'flex-end', minWidth: 160 }}>
-                      <View style={{ width: '100%' }}>
-                        <Text style={styles.statusSectionLabel}>Trạng thái hiện tại:</Text>
+                    {stage.max_cigarettes_per_day !== undefined && (
+                      <Text style={[styles.stageDateText, { marginTop: 4, color: 'red' }]}>
+                        <Ionicons
+                          name="filter-outline"
+                          size={16}
+                          color={'red'}
+                        />{" "}
+                        Tối đa {stage.max_cigarettes_per_day} điếu/ngày
+                      </Text>
+                    )}
+
+                    <View style={{ width: '100%' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+                        <Text style={[styles.statusSectionLabel, { marginRight: 8 }]}>Trạng thái hiện tại:</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(stage.status), marginTop: 2 }]}>
+                          <Ionicons name={getStatusIcon(stage.status)} size={16} color="#fff" style={{ marginRight: 6 }} />
+                          <Text style={styles.statusBadgeText}>{translateStatus(stage.status)}</Text>
+                        </View>
                       </View>
-                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(stage.status), marginBottom: 0, marginTop: 2 }]}> 
-                        <Ionicons name={getStatusIcon(stage.status)} size={16} color="#fff" style={{ marginRight: 6 }} />
-                        <Text style={styles.statusBadgeText}>{translateStatus(stage.status)}</Text>
-                      </View>
-                      {getAllowedStageStatusItems(stage.status).length > 1 && stage.status.toUpperCase() !== 'PENDING' && (
-                        <>
-                          <View style={{ width: '100%' }}>
-                            <Text style={styles.statusSectionLabel}>Chuyển trạng thái:</Text>
-                          </View>
+
+                      {getAllowedStageStatusItems(stage.status).filter(item => item.value !== stage.status).length > 0 && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+                          <Text style={[styles.statusSectionLabel, { marginRight: 8 }]}>Chuyển trạng thái:</Text>
                           <View style={styles.stageStatusButtonsContainer}>
-                            {getAllowedStageStatusItems(stage.status).map((item) => (
-                              <TouchableOpacity
-                                key={item.value}
-                                style={[
-                                  styles.stageStatusButton,
-                                  item.value === stage.status && styles.activeStageStatusButton,
-                                ]}
-                                onPress={() => onStageStatusChange(stage.id, item.value)}
-                                disabled={item.value === stage.status}
-                              >
-                                <Text style={[
-                                  styles.stageStatusButtonText,
-                                  item.value === stage.status && styles.activeStatusButtonText,
-                                ]}>
-                                  {item.label}
-                                </Text>
-                              </TouchableOpacity>
-                            ))}
+                            {getAllowedStageStatusItems(stage.status)
+                              .filter(item => item.value !== stage.status)
+                              .map((item) => (
+                                <TouchableOpacity
+                                  key={item.value}
+                                  style={styles.stageStatusButton}
+                                  onPress={() => onStageStatusChange(stage.id, item.value)}
+                                >
+                                  <Text style={styles.stageStatusButtonText}>{item.label}</Text>
+                                </TouchableOpacity>
+                              ))}
                           </View>
-                        </>
+                        </View>
                       )}
                     </View>
                   </View>
+
                   {plan.is_custom && (
                     <View style={styles.stageActionsContainer}>
                       <TouchableOpacity
@@ -389,6 +393,19 @@ const PlanCard: React.FC<PlanCardProps> = ({
           coachId={plan.template?.coach_id || ""}
         />
       )}
+
+      {plan.template?.id && (
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
+            Phản hồi kế hoạch
+          </Text>
+          <UserFeedbackSection
+            templateId={plan.template.id}
+            user={plan.user}
+            onFeedbackChange={onFeedbackChange}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -399,6 +416,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 22,
     marginBottom: 20,
+    marginTop: 10,
     borderWidth: 0.7,
     borderColor: COLORS.light.BORDER_LIGHT_GREY,
     shadowColor: COLORS.light.SHADOW,
@@ -429,8 +447,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusBadgeContainer: {
-    alignItems: "flex-end",
-    marginBottom: 8,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
   },
   customBadge: {
     backgroundColor: COLORS.light.BADGE,
@@ -453,7 +473,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#4CAF50", // mặc định, sẽ override bằng getStatusColor
+    backgroundColor: "#4CAF50",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -531,12 +551,12 @@ const styles = StyleSheet.create({
     color: COLORS.light.SUBTEXT,
   },
   cardInfoGrid: {
-    flexDirection: "column", // đổi từ row sang column để mỗi item 1 dòng
+    flexDirection: "column",
     gap: 10,
     marginBottom: 25,
   },
   cardInfoItem: {
-    width: "100%", // full width
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.light.WHITE,
@@ -544,7 +564,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: COLORS.light.BORDER_GREY,
-    marginBottom: 0, // đã có gap ở grid
+    marginBottom: 0,
   },
   startDateItem: {
     borderColor: COLORS.light.PRIMARY_BLUE,
@@ -645,10 +665,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   stageInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
+    flexDirection: "column",
+    alignItems: "flex-start",
     marginBottom: 15,
   },
   stageDateText: {
@@ -699,53 +717,55 @@ const styles = StyleSheet.create({
     gap: 14,
     marginTop: 10,
     marginBottom: 10,
-},
-statusButton: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingHorizontal: 18,
-  paddingVertical: 10,
-  borderRadius: 20,
-  borderWidth: 1.5,
-  borderColor: "#2196F3",
-  backgroundColor: "#fff",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.08,
-  shadowRadius: 4,
-  elevation: 2,
-},
-statusButtonText: {
-  fontWeight: "bold",
-  fontSize: 15,
-  marginLeft: 6,
-},
+  },
+  statusButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#2196F3",
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statusButtonText: {
+    fontWeight: "bold",
+    fontSize: 15,
+    marginLeft: 6,
+  },
   stageStatusButtonsContainer: {
     flexDirection: "row",
-    gap: 6,
     flexWrap: "wrap",
+    gap: 8,
+    alignItems: 'center',
   },
   stageStatusButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#4CAF50', // xanh lá
-    backgroundColor: '#fff',
-    marginLeft: 0,
-  },
-  activeStageStatusButton: {
-    backgroundColor: '#4CAF50', // xanh lá đậm khi active
-    borderColor: '#4CAF50',
+    borderColor: "#4CAF50",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginTop: 4,
   },
   stageStatusButtonText: {
-    color: '#4CAF50', // xanh lá cho nút thường
-    fontWeight: '600',
+    color: "4CAF50",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  activeStageStatusButton: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
   },
   dateBoxStart: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%", // Đảm bảo full width
+    width: "100%",
     borderWidth: 1,
     borderColor: COLORS.light.PRIMARY_BLUE,
     borderRadius: 12,
@@ -757,7 +777,7 @@ statusButtonText: {
   dateBoxTarget: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%", // Đảm bảo full width
+    width: "100%",
     borderWidth: 1,
     borderColor: COLORS.light.PRIMARY_YELLOW,
     borderRadius: 12,
@@ -767,12 +787,9 @@ statusButtonText: {
     backgroundColor: COLORS.light.WHITE,
   },
   statusSectionLabel: {
-    fontSize: 13,
-    color: COLORS.light.DARK_GREY_TEXT,
-    fontWeight: "600",
-    marginBottom: 2,
-    marginTop: 2,
-    alignSelf: "flex-start",
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.light.GRAY,
   },
 });
 

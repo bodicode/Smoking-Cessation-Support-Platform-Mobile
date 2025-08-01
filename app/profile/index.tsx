@@ -145,7 +145,7 @@ export default function ProfileScreen() {
                 <Ionicons name="person-circle" size={24} color={COLORS.light.PRIMARY_GREEN} />
                 <Text style={styles.sectionTitle}>Thông tin thành viên</Text>
               </View>
-              
+
               <View style={styles.statsContainer}>
                 <View style={styles.statCard}>
                   <Ionicons name="flame" size={24} color={COLORS.light.PRIMARY_GREEN} />
@@ -256,22 +256,6 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <LinearGradient
-              colors={[COLORS.light.PRIMARY_RED, COLORS.light.PRIMARY_RED + 'CC']}
-              style={styles.logoutGradient}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={20}
-                color={COLORS.light.WHITE}
-                style={styles.logoutIcon}
-              />
-              <Text style={styles.logoutText}>Đăng xuất</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Transaction Button */}
           <TouchableOpacity
             style={styles.transactionBtn}
             onPress={() => router.push("/transaction")}
@@ -289,6 +273,22 @@ export default function ProfileScreen() {
               <Text style={styles.logoutText}>Giao dịch</Text>
             </LinearGradient>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <LinearGradient
+              colors={[COLORS.light.PRIMARY_RED, COLORS.light.PRIMARY_RED + 'CC']}
+              style={styles.logoutGradient}
+            >
+              <Ionicons
+                name="log-out-outline"
+                size={20}
+                color={COLORS.light.WHITE}
+                style={styles.logoutIcon}
+              />
+              <Text style={styles.logoutText}>Đăng xuất</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
         </View>
       </ScrollView>
     </View>

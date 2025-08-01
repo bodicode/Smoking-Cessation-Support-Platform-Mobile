@@ -3,8 +3,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   View,
-  ActivityIndicator,
-  Text,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -12,83 +11,64 @@ import COLORS from "@/constants/Colors";
 import { ChatService } from "@/services/chatService";
 import { SubscriptionService } from "@/services/subscriptionService";
 import { useAuth } from "@/contexts/AuthContext";
-import { IChatRoom } from "@/types/api/chat";
-import { Alert } from "react-native";
 
-interface ChatBubbleRNProps { }
-
-const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
+const ChatBubbleRN: React.FC = () => {
   const router = useRouter();
   const { user, loading: userLoading } = useAuth();
+
+  const [hasUnread, setHasUnread] = useState(false);
+  const [hasRoom, setHasRoom] = useState(false);
   const [loadingChatRoom, setLoadingChatRoom] = useState(true);
-  const [chatRoomFound, setChatRoomFound] = useState<IChatRoom | null>(null);
   const [hasSubscription, setHasSubscription] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserChatRoom = async () => {
-      if (!user || userLoading) {
-        setLoadingChatRoom(true);
-        return;
-      }
+    if (!user || userLoading || !hasSubscription) return;
 
-      setLoadingChatRoom(true);
+    const fetchChatRooms = async () => {
       try {
-        const rooms = await ChatService.getAllChatRoomsWithHistory();
-
-        if (rooms && rooms.length > 0) {
-          setChatRoomFound(rooms[0]);
-        } else {
-          setChatRoomFound(null);
-        }
+        const rooms = await ChatService.getAllChatRoomsByUser();
+        setHasRoom(rooms.length > 0);
+        const anyUnread = rooms.some((room) => room.hasUnread);
+        setHasUnread(anyUnread);
       } catch (error) {
-        setChatRoomFound(null);
+        console.error("Error loading chat rooms:", error);
+        setHasRoom(false);
+        setHasUnread(false);
       } finally {
         setLoadingChatRoom(false);
       }
     };
 
-    fetchUserChatRoom();
+    fetchChatRooms();
   }, [user, userLoading]);
 
   useEffect(() => {
-    const checkSubscription = async () => {
-      if (!user || userLoading) {
-        setSubscriptionLoading(true);
-        return;
-      }
+    if (!user || userLoading) return;
 
+    const checkSub = async () => {
       try {
-        setSubscriptionLoading(true);
-        console.log("[ChatBubbleRN] Gọi API kiểm tra subscription...");
-        const hasActiveSub = await SubscriptionService.hasActiveSubscription();
-        console.log("[ChatBubbleRN] Kết quả subscription:", hasActiveSub);
-        setHasSubscription(hasActiveSub);
+        const hasActive = await SubscriptionService.hasActiveSubscription();
+        setHasSubscription(hasActive);
       } catch (error) {
-        console.error('[ChatBubbleRN] Error checking subscription:', error);
+        console.error("Subscription check failed:", error);
         setHasSubscription(false);
       } finally {
         setSubscriptionLoading(false);
       }
     };
 
-    checkSubscription();
+    checkSub();
   }, [user, userLoading]);
 
   const handlePress = () => {
-    if (loadingChatRoom || userLoading) {
-      Alert.alert(
-        "Thông báo",
-        "Đang tải dữ liệu phòng chat, vui lòng đợi một chút."
-      );
+    if (userLoading || loadingChatRoom) {
+      Alert.alert("Thông báo", "Đang tải dữ liệu phòng chat, vui lòng đợi.");
       return;
     }
 
     if (!user) {
-      Alert.alert(
-        "Yêu cầu đăng nhập",
-        "Vui lòng đăng nhập để sử dụng tính năng chat."
-      );
+      Alert.alert("Yêu cầu đăng nhập", "Vui lòng đăng nhập để chat.");
       router.push("/(auth)/login");
       return;
     }
@@ -96,20 +76,14 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
     router.push("/chat");
   };
 
-  if (userLoading || loadingChatRoom || subscriptionLoading) {
-    return (
-      <View style={styles.chatBubble}>
-        <ActivityIndicator size="small" color={COLORS.light.WHITE} />
-      </View>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-
-  if (!user) {
+  if (
+    !user ||
+    userLoading ||
+    subscriptionLoading ||
+    loadingChatRoom ||
+    !hasSubscription ||
+    !hasRoom
+  ) {
     return null;
   }
 
@@ -117,9 +91,10 @@ const ChatBubbleRN: React.FC<ChatBubbleRNProps> = () => {
     <TouchableOpacity
       style={styles.chatBubble}
       onPress={handlePress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
       <Ionicons name="chatbubbles" size={30} color={COLORS.light.WHITE} />
+      {hasUnread && <View style={styles.unreadDot} />}
     </TouchableOpacity>
   );
 };
@@ -141,6 +116,15 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 12,
     zIndex: 1000,
+  },
+  unreadDot: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "red",
   },
 });
 

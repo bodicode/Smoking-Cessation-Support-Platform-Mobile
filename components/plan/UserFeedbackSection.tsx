@@ -39,9 +39,9 @@ const UserFeedbackSection: React.FC<UserFeedbackSectionProps> = ({
     setLoading(true);
     try {
       const feedbacks = await FeedbackService.getFeedbacks({
-        filters: { templateId: templateId, userId: user.id },
+        filters: { templateId, userId: user.id },
       });
-      setUserFeedback(feedbacks.find((fb) => fb.user?.id === user.id) || null);
+      setUserFeedback(feedbacks.length > 0 ? feedbacks[0] : null);
     } catch (e) {
       Toast.show({
         type: "error",
@@ -61,7 +61,7 @@ const UserFeedbackSection: React.FC<UserFeedbackSectionProps> = ({
   const handleFormSuccess = () => {
     setIsFormModalVisible(false);
     fetchUserFeedback();
-    onFeedbackChange(); // Báo cho component cha biết để cập nhật danh sách feedback chung
+    onFeedbackChange();
   };
 
   const handleDeleteFeedback = useCallback(async () => {
@@ -81,7 +81,7 @@ const UserFeedbackSection: React.FC<UserFeedbackSectionProps> = ({
                 text1: "Đã xoá feedback thành công!",
               });
               setUserFeedback(null);
-              onFeedbackChange(); // Báo cho component cha cập nhật
+              onFeedbackChange();
             } catch (e: any) {
               Toast.show({
                 type: "error",

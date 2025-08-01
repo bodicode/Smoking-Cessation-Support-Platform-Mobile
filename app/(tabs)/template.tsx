@@ -76,7 +76,6 @@ export default function TemplateScreen() {
 
       setQuizAttempt(completedAttempt);
     } catch (err) {
-      console.error("Error checking quiz attempt:", err);
       setQuizAttempt(null);
     } finally {
       setQuizLoading(false);

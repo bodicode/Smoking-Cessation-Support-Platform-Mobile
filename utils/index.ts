@@ -37,7 +37,7 @@ export const translateStatus = (status: string) => {
     case "COMPLETED":
       return "Hoàn thành";
     case "ABANDONED":
-      return "Đã từ bỏ";
+      return "Đã tạm ngưng";
     case "CANCELLED":
       return "Đã hủy";
     case "PENDING":

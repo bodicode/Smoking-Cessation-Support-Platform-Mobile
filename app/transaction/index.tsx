@@ -6,13 +6,13 @@ import {
   FlatList,
   ActivityIndicator,
   SafeAreaView,
-  TouchableOpacity,
+  ColorValue,
 } from "react-native";
 import COLORS from "@/constants/Colors";
 import { PaymentService } from "@/services/paymentService";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, Stack } from "expo-router";
 
 export default function TransactionScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -32,27 +32,28 @@ export default function TransactionScreen() {
   }, []);
 
   const getStatusStyle = (status: string) => {
-    if (status === "success" || status === "completed") {
-      return {
-        borderColor: COLORS.light.PRIMARY_GREEN,
-        gradient: [COLORS.light.PRIMARY_GREEN + "18", COLORS.light.WHITE],
-      };
+    let borderColor = COLORS.light.SUBTEXT;
+    let gradient = [COLORS.light.CARD_BG, COLORS.light.CARD_BG];
+
+    if (status === "success" || status === "completed" || status === "SUCCESS") {
+      borderColor = COLORS.light.PRIMARY_GREEN;
+      gradient = [borderColor + "18", COLORS.light.CARD_BG];
+    } else if (status === "pending" || status === "PENDING") {
+      borderColor = COLORS.light.YELLOW;
+      gradient = [borderColor + "18", COLORS.light.CARD_BG];
+    } else if (
+      status === "failed" ||
+      status === "cancelled" ||
+      status === "FAILED" ||
+      status === "CANCELLED"
+    ) {
+      borderColor = COLORS.light.PRIMARY_RED;
+      gradient = [borderColor + "18", COLORS.light.CARD_BG];
     }
-    if (status === "pending") {
-      return {
-        borderColor: COLORS.light.WARNING,
-        gradient: [COLORS.light.WARNING + "18", COLORS.light.WHITE],
-      };
-    }
-    if (status === "failed" || status === "cancelled") {
-      return {
-        borderColor: COLORS.light.ERROR,
-        gradient: [COLORS.light.ERROR + "18", COLORS.light.WHITE],
-      };
-    }
+
     return {
-      borderColor: COLORS.light.SUBTEXT,
-      gradient: [COLORS.light.LIGHT_GREY_BG, COLORS.light.WHITE],
+      borderColor,
+      gradient,
     };
   };
 
@@ -60,27 +61,24 @@ export default function TransactionScreen() {
     let color = COLORS.light.SUBTEXT;
     let icon = "time-outline";
     let label = status;
+
     if (status === "SUCCESS") {
       color = COLORS.light.PRIMARY_GREEN;
       icon = "checkmark-circle";
       label = "Thành công";
     } else if (status === "PENDING") {
-      color = COLORS.light.WARNING;
+      color = COLORS.light.YELLOW;
       icon = "time-outline";
       label = "Đang xử lý";
-    } else if (status === "failed" || status === "cancelled") {
-      color = COLORS.light.ERROR;
+    } else if (status === "FAILED" || status === "CANCELLED") {
+      color = COLORS.light.PRIMARY_RED;
       icon = "close-circle";
       label = "Thất bại";
     }
+
     return (
       <View style={styles.statusRow}>
-        <Ionicons
-          name={icon as any}
-          size={18}
-          color={color}
-          style={{ marginRight: 6 }}
-        />
+        <Ionicons name={icon as any} size={18} color={color} style={{ marginRight: 6 }} />
         <Text style={[styles.statusText, { color }]}>{label}</Text>
       </View>
     );
@@ -90,85 +88,48 @@ export default function TransactionScreen() {
     const statusStyle = getStatusStyle(item.status);
     return (
       <LinearGradient
-        colors={statusStyle.gradient}
+        colors={statusStyle.gradient as [ColorValue, ColorValue]}
         style={[
           styles.card,
-          { borderLeftColor: statusStyle.borderColor },
+          {
+            borderLeftColor: statusStyle.borderColor,
+            backgroundColor: COLORS.light.CARD_BG,
+          },
         ]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
       >
         <View style={styles.cardRow}>
-          <Ionicons
-            name="pricetag"
-            size={18}
-            color={COLORS.light.PRIMARY_GREEN}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="pricetag" size={18} color={COLORS.light.PRIMARY_GREEN} style={{ marginRight: 6 }} />
           <Text style={styles.label}>Mã giao dịch:</Text>
           <Text style={styles.value}>{item.id}</Text>
         </View>
         <View style={styles.cardRow}>
-          <Ionicons
-            name="receipt-outline"
-            size={18}
-            color={COLORS.light.PRIMARY_BLUE}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="receipt-outline" size={18} color={COLORS.light.PRIMARY_BLUE} style={{ marginRight: 6 }} />
           <Text style={styles.label}>Mã thanh toán:</Text>
           <Text style={styles.value}>{item.payment_transaction_id || "—"}</Text>
         </View>
         <View style={styles.cardRow}>
-          <Ionicons
-            name="cash-outline"
-            size={18}
-            color={COLORS.light.PRIMARY_RED}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="cash-outline" size={18} color={COLORS.light.PRIMARY_RED} style={{ marginRight: 6 }} />
           <Text style={styles.label}>Số tiền:</Text>
-          <Text
-            style={[
-              styles.value,
-              { color: COLORS.light.PRIMARY_RED, fontWeight: "bold" },
-            ]}
-          >
+          <Text style={[styles.value, { color: COLORS.light.PRIMARY_RED, fontWeight: "bold" }]}>
             {item.price?.toLocaleString("vi-VN")}đ
           </Text>
         </View>
         <View style={styles.cardRow}>
-          <Ionicons
-            name="alert-circle-outline"
-            size={18}
-            color={statusStyle.borderColor}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="alert-circle-outline" size={18} color={statusStyle.borderColor} style={{ marginRight: 6 }} />
           <Text style={styles.label}>Trạng thái:</Text>
           {renderStatus(item.status)}
         </View>
         <View style={styles.cardRow}>
-          <Ionicons
-            name="gift-outline"
-            size={18}
-            color={COLORS.light.PRIMARY_BLUE}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="gift-outline" size={18} color={COLORS.light.PRIMARY_BLUE} style={{ marginRight: 6 }} />
           <Text style={styles.label}>Gói:</Text>
-          <Text
-            style={[
-              styles.value,
-              { color: COLORS.light.PRIMARY_BLUE, fontWeight: "bold" },
-            ]}
-          >
+          <Text style={[styles.value, { color: COLORS.light.PRIMARY_BLUE, fontWeight: "bold" }]}>
             {item.subscription?.package?.name || "—"}
           </Text>
         </View>
         <View style={styles.cardRow}>
-          <Ionicons
-            name="calendar-outline"
-            size={18}
-            color={COLORS.light.PRIMARY_GREEN}
-            style={{ marginRight: 6 }}
-          />
+          <Ionicons name="calendar-outline" size={18} color={COLORS.light.PRIMARY_GREEN} style={{ marginRight: 6 }} />
           <Text style={styles.label}>Thời hạn:</Text>
           <Text style={styles.value}>
             {item.subscription?.package?.duration_days
@@ -182,13 +143,18 @@ export default function TransactionScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.light.PRIMARY_GREEN} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Giao dịch</Text>
-        <View style={{ width: 40 }} /> {/* Placeholder for alignment */}
-      </View>
+      <Stack.Screen
+        options={{
+          title: "Giao dịch",
+          headerShown: true,
+          headerTitleAlign: "left",
+          headerTitleStyle: {
+            // color: COLORS.light.PRIMARY_GREEN,
+            fontSize: 20,
+            // fontWeight: "bold",
+          },
+        }}
+      />
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.light.PRIMARY_GREEN} />
@@ -196,11 +162,7 @@ export default function TransactionScreen() {
         </View>
       ) : transactions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons
-            name="file-tray-outline"
-            size={48}
-            color={COLORS.light.SUBTEXT}
-          />
+          <Ionicons name="file-tray-outline" size={48} color={COLORS.light.SUBTEXT} />
           <Text style={styles.emptyText}>Không có giao dịch nào</Text>
         </View>
       ) : (
@@ -222,32 +184,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.light.BG,
     paddingTop: 20,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingHorizontal: 8,
-    justifyContent: "space-between",
-  },
-  backButton: {
-    padding: 8,
-    width: 40,
-    alignItems: "flex-start",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: COLORS.light.PRIMARY_GREEN,
-    textAlign: "center",
-    flex: 1,
-  },
   list: {
     paddingHorizontal: 16,
     paddingBottom: 24,
   },
   card: {
     borderLeftWidth: 6,
-    backgroundColor: COLORS.light.CARD_BG,
     borderRadius: 18,
     padding: 18,
     marginBottom: 18,
@@ -256,6 +198,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 16,
     elevation: 6,
+    backgroundColor: COLORS.light.CARD_BG,
   },
   cardRow: {
     flexDirection: "row",

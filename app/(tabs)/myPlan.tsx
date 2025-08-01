@@ -393,11 +393,11 @@ export default function CessationPlanListScreen() {
               onEditStage={handleOpenEditStageModal}
               onDeleteStage={handleDeleteStage}
               onCreateNewStage={handleOpenCreateStageModal}
+              onFeedbackChange={handleFeedbackChange}
             />
           )}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={EmptyPlanListComponent}
-          ListFooterComponent={ListFooter}
           contentContainerStyle={styles.fullListContainer}
           style={styles.flatList}
         />

@@ -20,13 +20,8 @@ import { useRouter } from "expo-router";
 import { IProgressRecord } from "@/types/api/processRecord";
 import ProgressCharts from "@/components/home/ProcessChart";
 import ProgressRecordForm from "@/components/plan/ProgressRecordForm";
-import Toast from "react-native-toast-message";
 import { useProgress } from "@/contexts/ProgressRecordContext";
 import { useFocusEffect } from "@react-navigation/native";
-import {
-  HEALTH_MILESTONES,
-  IHealthMilestone,
-} from "@/types/api/healthMilestones";
 import { notificationService } from "@/services/notificationService";
 import { UserService } from '@/services/userService';
 
@@ -114,54 +109,14 @@ export default function HomeScreen() {
   const [selectedDateForNewRecord, setSelectedDateForNewRecord] = useState<
     Date | undefined
   >(undefined);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const initialDailyCigarettes = 20;
   const costPerCigarette = 50000 / 20;
 
-  const achievedMilestones = useMemo(() => {
-    if (!activePlan || !activePlan.start_date) {
-      return [];
-    }
-
-    const startDate = new Date(activePlan.start_date);
-    const now = currentTime;
-
-    const achieved: IHealthMilestone[] = [];
-
-    HEALTH_MILESTONES.forEach((milestone) => {
-      let milestoneDate: Date;
-      const [value, unit] = milestone.timeframe.split(" ");
-      const numValue = parseInt(value);
-
-      milestoneDate = new Date(startDate);
-
-      switch (unit) {
-        case "phút":
-          milestoneDate.setMinutes(milestoneDate.getMinutes() + numValue);
-          break;
-        case "giờ":
-          milestoneDate.setHours(milestoneDate.getHours() + numValue);
-          break;
-        case "ngày":
-          milestoneDate.setDate(milestoneDate.getDate() + numValue);
-          break;
-        case "tuần":
-          milestoneDate.setDate(milestoneDate.getDate() + numValue * 7);
-          break;
-        case "năm":
-          milestoneDate.setFullYear(milestoneDate.getFullYear() + numValue);
-          break;
-        default:
-          break;
-      }
-
-      if (now.getTime() >= milestoneDate.getTime()) {
-        achieved.push(milestone);
-      }
-    });
-
-    return achieved;
-  }, [activePlan, currentTime]);
+  useEffect(() => {
+    console.log("Form modal visible:", isFormModalVisible);
+  }, [isFormModalVisible]);
 
   const handleAuthButtonPress = useCallback(() => {
     router.push("/login");
@@ -186,8 +141,6 @@ export default function HomeScreen() {
       refreshData();
     }, [refreshData])
   );
-
-
 
   const { days, hours, minutes, seconds, moneySaved, cigarettesSmokedAgain } =
     useMemo<IProgressStats>(() => {
@@ -660,16 +613,12 @@ export default function HomeScreen() {
       </ScrollView>
 
       <Modal
-        animationType="slide"
-        transparent={true}
         visible={isFormModalVisible}
+        transparent
+        animationType="slide"
         onRequestClose={handleFormCancel}
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={handleFormCancel}
-        >
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <ProgressRecordForm
               initialData={selectedRecordForEdit}
@@ -680,7 +629,7 @@ export default function HomeScreen() {
               coachId={activePlan?.template.coach_id}
             />
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );

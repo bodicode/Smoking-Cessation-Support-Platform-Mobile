@@ -246,6 +246,7 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+    paddingTop: 12,
   },
   roomItem: {
     flexDirection: "row",

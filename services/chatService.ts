@@ -8,91 +8,90 @@ import {
 } from "@/types/api/chat";
 import client from "@/libs/apollo-client";
 import { CREATE_CHAT_ROOM_MUTATION } from "@/graphql/mutation/createChatRoom";
-import { GET_CHAT_MESSAGES_QUERY } from "@/graphql/query/getChatMessage";
 import { GET_ALL_CHAT_ROOMS_BY_USER_QUERY } from "@/graphql/query/getAllChatRooms";
 import { CHAT_ROOM_MESSAGES_SUBSCRIPTION } from "@/graphql/subscription/chatMessage";
 import { SEND_MESSAGE_MUTATION } from "@/graphql/mutation/sendMessage";
+import { GET_CHAT_MESSAGES_BY_ROOM_ID } from "@/graphql/query/getChatMessagesByRoomId";
 
 export const ChatService = {
   createChatRoom: async (input: ICreateChatRoomInput): Promise<IChatRoom> => {
     try {
-      const { data, errors } = await client.mutate({
+      const res = await client.mutate({
         mutation: CREATE_CHAT_ROOM_MUTATION,
         variables: { input },
       });
 
-      if (errors) {
-        const errorMessage = errors.map((err) => err.message).join(", ");
-        throw new Error(
-          `Failed to create chat room due to GraphQL errors: ${errorMessage}`
-        );
+      if (res.errors) {
+        throw new Error(res.errors.map(e => e.message).join(", "));
       }
 
-      if (!data || !data.createChatRoom) {
-        throw new Error("No data returned when creating chat room.");
+      if (!res.data?.createChatRoom) {
+        throw new Error("No data returned from createChatRoom.");
       }
 
-      return data.createChatRoom as IChatRoom;
+      return res.data.createChatRoom;
     } catch (error) {
+      console.error("Create chat room error:", error);
       throw error;
     }
   },
 
   getChatMessagesByRoomId: async (roomId: string): Promise<ChatMessage[]> => {
     try {
+      console.log("👉 Fetching messages for roomId:", roomId);
       const { data, errors } = await client.query<GetChatMessagesResponse>({
-        query: GET_CHAT_MESSAGES_QUERY,
+        query: GET_CHAT_MESSAGES_BY_ROOM_ID, // sửa đúng query
         variables: { roomId },
         fetchPolicy: "network-only",
       });
 
       if (errors) {
-        const errorMessage = errors.map((err) => err.message).join(", ");
-        throw new Error(
-          `Failed to get chat messages due to GraphQL errors: ${errorMessage}`
-        );
+        console.error("GraphQL errors:", errors);
+        throw new Error(errors.map(e => e.message).join(", "));
       }
 
       if (!data || !data.getChatMessagesByRoomId) {
+        console.warn("⚠️ No getChatMessagesByRoomId in response:", data);
         return [];
       }
 
-      return data.getChatMessagesByRoomId;
-    } catch (error) {
+      return data.getChatMessagesByRoomId.messages;
+    } catch (error: any) {
+      if (error.networkError) {
+        console.error("❌ Network error:", error.networkError);
+      }
+      if (error.graphQLErrors) {
+        error.graphQLErrors.forEach((err: any) =>
+          console.error("GraphQL Error:", err.message)
+        );
+      }
+      console.error("Unexpected error fetching chat messages:", error);
       throw new Error("Không thể lấy tin nhắn chat.");
     }
   },
 
   getAllChatRoomsByUser: async (): Promise<IChatRoom[]> => {
     try {
-      const { data, errors } = await client.query<{
-        getAllChatRoomsByUser: IChatRoom[];
-      }>({
+      const { data, errors } = await client.query({
         query: GET_ALL_CHAT_ROOMS_BY_USER_QUERY,
         fetchPolicy: "network-only",
       });
 
       if (errors) {
-        const errorMessage = errors.map((err) => err.message).join(", ");
-        throw new Error(
-          `Failed to get all chat rooms due to GraphQL errors: ${errorMessage}`
-        );
+        throw new Error(errors.map(e => e.message).join(", "));
       }
 
-      if (!data || !data.getAllChatRoomsByUser) {
-        return [];
-      }
-
-      return data.getAllChatRoomsByUser;
+      return data?.getAllChatRoomsByUser || [];
     } catch (error) {
+      console.error("Error fetching chat rooms:", error);
       throw new Error("Không thể lấy danh sách phòng chat.");
     }
   },
 
   subscribeToChatMessages: (
     roomId: string,
-    onMessageReceived: (message: ChatMessage) => void
-  ): (() => void) => {
+    onMessageReceived: (msg: ChatMessage) => void
+  ) => {
     const observable = client.subscribe({
       query: CHAT_ROOM_MESSAGES_SUBSCRIPTION,
       variables: { roomId },
@@ -100,16 +99,11 @@ export const ChatService = {
 
     const subscription = observable.subscribe({
       next: ({ data }) => {
-        if (data && data.chatRoomMessages) {
+        if (data?.chatRoomMessages) {
           onMessageReceived(data.chatRoomMessages);
         }
       },
-      error: (err) => {
-        console.error("Subscription error:", err);
-      },
-      complete: () => {
-        // console.log("Subscription completed.");
-      },
+      error: (err) => console.error("Subscription error:", err),
     });
 
     return () => subscription.unsubscribe();
@@ -117,84 +111,73 @@ export const ChatService = {
 
   sendMessage: async (input: CreateChatMessageInput): Promise<ChatMessage> => {
     try {
-      const { data, errors } = await client.mutate<SendMessageResponse>({
+      const res = await client.mutate<SendMessageResponse>({
         mutation: SEND_MESSAGE_MUTATION,
         variables: { input },
       });
 
-      if (errors) {
-        const errorMessage = errors.map((err) => err.message).join(", ");
-        throw new Error(
-          `Failed to send message due to GraphQL errors: ${errorMessage}`
-        );
+      if (res.errors) {
+        throw new Error(res.errors.map(e => e.message).join(", "));
       }
 
-      if (!data || !data.sendMessage) {
-        throw new Error("No data returned when sending message.");
+      if (!res.data?.sendMessage) {
+        throw new Error("No message returned after sending.");
       }
 
-      return data.sendMessage;
+      return res.data.sendMessage;
     } catch (error) {
+      console.error("Send message error:", error);
       throw new Error("Không thể gửi tin nhắn.");
     }
   },
 
-  // Lấy tất cả chat rooms với lịch sử đầy đủ
   getAllChatRoomsWithHistory: async (): Promise<IChatRoom[]> => {
     try {
-      // Lấy tất cả chat rooms
+      console.log("🔍 Loading all chat rooms with messages...");
       const allRooms = await ChatService.getAllChatRoomsByUser();
-      
-      // Lấy messages cho từng room
+
       const roomsWithHistory = await Promise.all(
         allRooms.map(async (room) => {
           try {
             const messages = await ChatService.getChatMessagesByRoomId(room.id);
             return {
               ...room,
-              messages: messages,
+              messages,
               total_messages: messages.length,
-              last_message: messages.length > 0 ? messages[messages.length - 1] : undefined,
+              last_message: messages.at(-1),
             };
           } catch (error) {
-            console.error(`Error fetching messages for room ${room.id}:`, error);
-            return {
-              ...room,
-              messages: [],
-              total_messages: 0,
-              last_message: undefined,
-            };
+            console.warn(`⚠️ Could not fetch messages for room ${room.id}`);
+            return { ...room, messages: [], total_messages: 0 };
           }
         })
       );
 
       return roomsWithHistory;
     } catch (error) {
-      console.error('Error in getAllChatRoomsWithHistory:', error);
+      console.error("Error loading chat history:", error);
       throw new Error("Không thể lấy lịch sử chat.");
     }
   },
 
-  // Lấy chat room cụ thể với toàn bộ lịch sử
   getChatRoomWithHistory: async (roomId: string): Promise<IChatRoom | null> => {
     try {
       const allRooms = await ChatService.getAllChatRoomsByUser();
-      const targetRoom = allRooms.find(room => room.id === roomId);
-      
-      if (!targetRoom) {
-        return null;
-      }
+      const targetRoom = allRooms.find((room) => room.id === roomId);
+
+      if (!targetRoom) return null;
 
       const messages = await ChatService.getChatMessagesByRoomId(roomId);
-      
+
       return {
         ...targetRoom,
-        messages: messages,
+        messages,
         total_messages: messages.length,
-        last_message: messages.length > 0 ? messages[messages.length - 1] : undefined,
+        last_message: messages.at(-1),
       };
     } catch (error) {
-      throw new Error("Không thể lấy lịch sử chat room.");
+      console.error("Error loading specific chat room:", error);
+      throw new Error("Không thể lấy lịch sử phòng chat.");
     }
   },
 };
