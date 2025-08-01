@@ -2,6 +2,8 @@ import client from '@/libs/apollo-client';
 import { GET_PROFILE_QUIZZES } from '@/graphql/query/getProfileQuizzes';
 import { GET_QUIZ_ATTEMPT } from '@/graphql/query/getQuizAttempt';
 import { GET_AI_RECOMMENDATION } from '@/graphql/query/getAIRecommendation';
+import { GET_MY_TEMPLATE_MATCHING_RESULTS } from '@/graphql/query/getMyTemplateMatchingResults';
+import { GET_TEMPLATE_MATCHING_RESULT_DETAILS } from '@/graphql/query/getTemplateMatchingResultDetails';
 import { START_QUIZ, StartQuizInput, StartQuizResponse } from '@/graphql/mutation/startQuiz';
 import { SUBMIT_QUIZ, QuizResponseInput, SubmitQuizInput, SubmitQuizResponse } from '@/graphql/mutation/submitQuizAnswers';
 import { 
@@ -10,7 +12,8 @@ import {
   GetQuizAttemptResponse, 
   QuizAttempt,
   GetAIRecommendationResponse,
-  AIRecommendation
+  AIRecommendation,
+  TemplateMatchingResult
 } from '@/types/api/quiz';
 
 export class QuizService {
@@ -100,6 +103,34 @@ export class QuizService {
       return data.getAIRecommendation;
     } catch (error) {
       console.error('Error fetching AI recommendation:', error);
+      throw error;
+    }
+  }
+
+  static async getMyTemplateMatchingResults(): Promise<TemplateMatchingResult[]> {
+    try {
+      const { data } = await client.query<{ getMyTemplateMatchingResults: TemplateMatchingResult[] }>({
+        query: GET_MY_TEMPLATE_MATCHING_RESULTS,
+        fetchPolicy: 'network-only',
+      });
+      
+      return data.getMyTemplateMatchingResults;
+    } catch (error) {
+      console.error('Error fetching template matching results:', error);
+      throw error;
+    }
+  }
+
+  static async getTemplateMatchingResultDetails(id: string): Promise<TemplateMatchingResult> {
+    try {
+      const { data } = await client.query<{ getTemplateMatchingResultDetails: TemplateMatchingResult }>({
+        query: GET_TEMPLATE_MATCHING_RESULT_DETAILS,
+        variables: { getTemplateMatchingResultDetailsId: id },
+        fetchPolicy: 'network-only',
+      });
+      return data.getTemplateMatchingResultDetails;
+    } catch (error) {
+      console.error('Error fetching template matching result details:', error);
       throw error;
     }
   }

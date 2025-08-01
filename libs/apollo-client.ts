@@ -15,7 +15,7 @@ import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
 import { createClient } from "graphql-ws";
 import { getMainDefinition } from "@apollo/client/utilities";
 
-const GRAPHQL_URI = "http://10.0.2.2:3000/graphql";
+const GRAPHQL_URI = "https://minhphuoc.io.vn/graphql";
 
 const httpLink = new HttpLink({
   uri: GRAPHQL_URI,

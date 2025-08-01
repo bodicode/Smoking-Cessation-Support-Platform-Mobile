@@ -75,12 +75,12 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({ onRoomPress }) => {
     } else {
       // Logic đơn giản: Luôn hiển thị receiver name vì đây là chat với coach
       let displayName = room.receiver.name;
-      
+
       // Nếu receiver name trống, thì dùng creator name
       if (!displayName || displayName.trim() === '') {
         displayName = room.creator.name || 'Coach';
       }
-      
+
       // Nếu vẫn trống, dùng default
       if (!displayName || displayName.trim() === '') {
         displayName = 'Coach';
@@ -121,12 +121,12 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({ onRoomPress }) => {
   const renderChatRoom = ({ item: room }: { item: IChatRoom }) => {
     // Logic đơn giản: Luôn hiển thị receiver name vì đây là chat với coach
     let displayName = room.receiver.name;
-    
+
     // Nếu receiver name trống, thì dùng creator name
     if (!displayName || displayName.trim() === '') {
       displayName = room.creator.name || 'Coach';
     }
-    
+
     // Nếu vẫn trống, dùng default
     if (!displayName || displayName.trim() === '') {
       displayName = 'Coach';
@@ -188,7 +188,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({ onRoomPress }) => {
 
   const renderFooter = () => {
     if (!hasMore) return null;
-    
+
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={COLORS.light.PRIMARY} />

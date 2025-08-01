@@ -1,4 +1,4 @@
-// Improved QuizPage.tsx with better UI styling and structure
+// Improved QuizPage.tsx with TimePickerInput, validation, and full submit logic
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,15 +9,14 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import COLORS from '@/constants/Colors';
 import { QuizService } from '@/services/quizService';
 import { ProfileQuiz, QuizQuestion } from '@/types/api/quiz';
 import { QuizResponseInput } from '@/graphql/mutation/submitQuizAnswers';
+import TimePickerInput from '@/components/common/TimePickerInput';
 
 interface QuizAnswer {
   questionId: string;
@@ -40,10 +39,13 @@ const QuizPage: React.FC = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [showRecommendationLoading, setShowRecommendationLoading] = useState(false);
 
   useEffect(() => {
     loadQuiz();
   }, []);
+
+  const singleChoiceIds = ['7e872d18-e656-46fe-b820-cc7c37481b46'];
 
   const loadQuiz = async () => {
     try {
@@ -102,6 +104,8 @@ const QuizPage: React.FC = () => {
 
   const renderQuestion = (question: QuizQuestion) => {
     const currentAnswer = getCurrentAnswer(question.id);
+    const isTimeQuestion = question.question_text.toLowerCase().includes("lúc mấy giờ");
+
     switch (question.question_type) {
       case 'NUMBER':
         return (
@@ -114,6 +118,14 @@ const QuizPage: React.FC = () => {
           />
         );
       case 'TEXT':
+        if (isTimeQuestion) {
+          return (
+            <TimePickerInput
+              value={currentAnswer?.toString() || ''}
+              onChange={(time) => handleAnswerChange(question.id, time)}
+            />
+          );
+        }
         return (
           <TextInput
             style={styles.textInput}
@@ -123,30 +135,52 @@ const QuizPage: React.FC = () => {
           />
         );
       case 'MULTIPLE_CHOICE':
-        return (
-          <View style={styles.optionsContainer}>
-            {question.options?.map((option, index) => {
-              const selected = Array.isArray(currentAnswer) && currentAnswer.includes(option);
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.optionButton, selected && styles.selectedOption]}
-                  onPress={() => {
-                    const currentAnswers = Array.isArray(currentAnswer) ? currentAnswer : [];
-                    handleAnswerChange(
-                      question.id,
-                      selected ? currentAnswers.filter(a => a !== option) : [...currentAnswers, option]
-                    );
-                  }}
-                >
-                  <Text style={[styles.optionText, selected && styles.selectedOptionText]}>
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        );
+        const isSingleSelect = singleChoiceIds.includes(question.id);
+        if (isSingleSelect) {
+          return (
+            <View style={styles.optionsContainer}>
+              {question.options?.map((option, index) => {
+                const selected = currentAnswer === option;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.optionButton, selected && styles.selectedOption]}
+                    onPress={() => handleAnswerChange(question.id, option)}
+                  >
+                    <Text style={[styles.optionText, selected && styles.selectedOptionText]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        } else {
+          return (
+            <View style={styles.optionsContainer}>
+              {question.options?.map((option, index) => {
+                const selected = Array.isArray(currentAnswer) && currentAnswer.includes(option);
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.optionButton, selected && styles.selectedOption]}
+                    onPress={() => {
+                      const answers = Array.isArray(currentAnswer) ? currentAnswer : [];
+                      handleAnswerChange(
+                        question.id,
+                        selected ? answers.filter(a => a !== option) : [...answers, option]
+                      );
+                    }}
+                  >
+                    <Text style={[styles.optionText, selected && styles.selectedOptionText]}>
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        }
       case 'SCALE':
         return (
           <View style={styles.scaleContainer}>
@@ -184,6 +218,16 @@ const QuizPage: React.FC = () => {
     }
   };
 
+  const goToNext = () => {
+    const currentQuestion = quiz?.questions[currentQuestionIndex];
+    const currentAnswer = getCurrentAnswer(currentQuestion?.id || '');
+    if (currentAnswer === undefined || currentAnswer === null || currentAnswer === '' || (Array.isArray(currentAnswer) && currentAnswer.length === 0)) {
+      Alert.alert('Thông báo', 'Vui lòng trả lời câu hỏi trước khi tiếp tục.');
+      return;
+    }
+    setCurrentQuestionIndex(currentQuestionIndex + 1);
+  };
+
   const handleSubmit = async () => {
     const requiredQuestions = quiz?.questions.filter(q => q.is_required) || [];
     const answeredRequired = requiredQuestions.every(q =>
@@ -203,9 +247,9 @@ const QuizPage: React.FC = () => {
         question_id: answer.questionId,
         answer: answer.answer,
       }));
-      const result = await QuizService.submitQuiz(quizAttempt.attempt_id, responses);
-      Alert.alert('Thành công', 'Cảm ơn bạn đã hoàn thành khảo sát!');
-      router.replace('/quiz/result' as any);
+      await QuizService.submitQuiz(quizAttempt.attempt_id, responses);
+      await QuizService.getAIRecommendation();
+      router.replace('/quiz/result');
     } catch (error) {
       console.error('Error submitting quiz:', error);
       Alert.alert('Lỗi', 'Không thể gửi khảo sát. Vui lòng thử lại.');
@@ -214,122 +258,112 @@ const QuizPage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !quiz || showRecommendationLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.light.ACTIVE} />
-          <Text style={styles.loadingText}>Đang tải khảo sát...</Text>
-        </View>
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={COLORS.light.ACTIVE} />
       </SafeAreaView>
     );
   }
-
-  if (!quiz) return null;
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: 'Khảo sát thói quen',
-          headerShown: true,
-          headerStyle: { backgroundColor: COLORS.light.BG },
-          headerTintColor: COLORS.light.TEXT,
-          headerTitleStyle: { fontWeight: 'bold' },
-        }}
-      />
-      <SafeAreaView style={styles.container}>
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>
-              Câu hỏi {currentQuestionIndex + 1} / {quiz.questions.length} (
-              {Math.round(((currentQuestionIndex + 1) / quiz.questions.length) * 100)}%)
-            </Text>
-            <View style={styles.progressBar}>
-              <View
-                style={[styles.progressFill, { width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%` }]}
-              />
-            </View>
-          </View>
-
-          <View style={styles.questionCard}>
-            <Text style={styles.questionText}>{currentQuestion.question_text}</Text>
-            {currentQuestion.description && (
-              <Text style={styles.questionDescription}>{currentQuestion.description}</Text>
-            )}
-            <View style={styles.answerContainer}>{renderQuestion(currentQuestion)}</View>
-          </View>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          {currentQuestionIndex > 0 && (
-            <TouchableOpacity style={styles.previousButton} onPress={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}>
-              <Text style={styles.previousButtonText}>Trước</Text>
-            </TouchableOpacity>
-          )}
-          {isLastQuestion ? (
-            <TouchableOpacity
-              style={[styles.submitButton, submitting && styles.disabledButton]}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.submitButtonText}>Hoàn thành</Text>
-              )}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.nextButton} onPress={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}>
-              <Text style={styles.nextButtonText}>Tiếp theo</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </SafeAreaView>
-    </>
+    <SafeAreaView style={{ flex: 1, padding: 16 }}>
+      <Stack.Screen options={{ title: 'Khảo sát' }} />
+      <ScrollView style={{ flex: 1 }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{currentQuestion.question_text}</Text>
+        {renderQuestion(currentQuestion)}
+      </ScrollView>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 }}>
+        {currentQuestionIndex > 0 && (
+          <TouchableOpacity onPress={() => setCurrentQuestionIndex(currentQuestionIndex - 1)} style={{ padding: 12, backgroundColor: '#ddd', borderRadius: 8 }}>
+            <Text>Trước</Text>
+          </TouchableOpacity>
+        )}
+        {!isLastQuestion ? (
+          <TouchableOpacity onPress={goToNext} style={{ padding: 12, backgroundColor: COLORS.light.ACTIVE, borderRadius: 8 }}>
+            <Text style={{ color: '#fff' }}>Tiếp theo</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={handleSubmit} disabled={submitting} style={{ padding: 12, backgroundColor: COLORS.light.ACTIVE, borderRadius: 8, opacity: submitting ? 0.6 : 1 }}>
+            <Text style={{ color: '#fff' }}>{submitting ? 'Đang gửi...' : 'Gửi'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.light.BG },
-  content: { flex: 1, paddingHorizontal: 16 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.light.TEXT },
-  progressContainer: { marginVertical: 20 },
-  progressText: { fontSize: 14, color: COLORS.light.INACTIVE, marginBottom: 8 },
-  progressBar: { height: 4, backgroundColor: '#E5E5E5', borderRadius: 2 },
-  progressFill: { height: '100%', backgroundColor: COLORS.light.ACTIVE, borderRadius: 2 },
-  questionCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, marginBottom: 20 },
-  questionText: { fontSize: 18, fontWeight: 'bold', color: COLORS.light.TEXT, marginBottom: 8, lineHeight: 24 },
-  questionDescription: { fontSize: 14, color: COLORS.light.INACTIVE, marginBottom: 20, lineHeight: 20 },
-  answerContainer: { marginTop: 16 },
-  textInput: { borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16, backgroundColor: '#fff' },
-  optionsContainer: { gap: 12 },
-  optionButton: { borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff' },
-  selectedOption: { borderColor: COLORS.light.ACTIVE, backgroundColor: COLORS.light.ACTIVE },
-  optionText: { fontSize: 16, color: COLORS.light.TEXT },
-  selectedOptionText: { color: '#fff', fontWeight: 'bold' },
-  scaleContainer: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  scaleButton: { flex: 1, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 8, paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff' },
-  selectedScale: { borderColor: COLORS.light.ACTIVE, backgroundColor: COLORS.light.ACTIVE },
-  scaleText: { fontSize: 16, color: COLORS.light.TEXT },
-  selectedScaleText: { color: '#fff', fontWeight: 'bold' },
-  booleanContainer: { flexDirection: 'row', gap: 12 },
-  booleanButton: { flex: 1, borderWidth: 1, borderColor: '#E5E5E5', borderRadius: 8, paddingVertical: 12, alignItems: 'center', backgroundColor: '#fff' },
-  selectedBoolean: { borderColor: COLORS.light.ACTIVE, backgroundColor: COLORS.light.ACTIVE },
-  booleanText: { fontSize: 16, color: COLORS.light.TEXT },
-  selectedBooleanText: { color: '#fff', fontWeight: 'bold' },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 20, borderTopWidth: 1, borderTopColor: '#E5E5E5' },
-  previousButton: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: '#f3f4f6' },
-  previousButtonText: { color: COLORS.light.ACTIVE, fontSize: 16, fontWeight: 'bold' },
-  nextButton: { backgroundColor: COLORS.light.ACTIVE, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6 },
-  nextButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  submitButton: { backgroundColor: COLORS.light.ACTIVE, paddingHorizontal: 32, paddingVertical: 12, borderRadius: 8, flex: 1, alignItems: 'center' },
-  submitButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  disabledButton: { opacity: 0.6 },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  optionsContainer: {
+    gap: 12,
+  },
+  optionButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+  },
+  selectedOption: {
+    backgroundColor: COLORS.light.ACTIVE,
+  },
+  optionText: {
+    fontSize: 16,
+  },
+  selectedOptionText: {
+    color: '#fff',
+  },
+  scaleContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scaleButton: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    flex: 1,
+    alignItems: 'center',
+  },
+  selectedScale: {
+    backgroundColor: COLORS.light.ACTIVE,
+  },
+  scaleText: {
+    fontSize: 16,
+  },
+  selectedScaleText: {
+    color: '#fff',
+  },
+  booleanContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  booleanButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  selectedBoolean: {
+    backgroundColor: COLORS.light.ACTIVE,
+  },
+  booleanText: {
+    fontSize: 16,
+  },
+  selectedBooleanText: {
+    color: '#fff',
+  },
 });
 
 export default QuizPage;

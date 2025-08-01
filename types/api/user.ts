@@ -42,6 +42,7 @@ export interface MemberProfile {
 }
 
 export interface User {
+  user_metadata: any;
   id: string;
   avatar_url?: string;
   name?: string;

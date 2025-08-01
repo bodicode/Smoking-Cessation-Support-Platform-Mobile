@@ -27,6 +27,7 @@ export interface ICessationPlanTemplate {
 }
 
 export interface ICessationPlanStage {
+  max_cigarettes_per_day: number;
   id: string;
   title: string;
   stage_order: number;

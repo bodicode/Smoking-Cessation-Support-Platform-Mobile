@@ -105,7 +105,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
         Toast.show({
           type: "error",
           text1: "Lỗi!",
-          text2: error.message || "Không thể gửi feedback.",
+          text2: "Không thể gửi feedback.",
         });
       }
       onCancel();

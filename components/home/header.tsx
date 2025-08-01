@@ -16,7 +16,13 @@ type HomeHeaderProps = {
 const AVATAR_SIZE = 42;
 const PROGRESS_SIZE = 48;
 
-const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress, unreadCount }) => {
+// ... giữ nguyên import như cũ
+
+const HomeHeader: React.FC<HomeHeaderProps> = ({
+  user,
+  onCrownPress,
+  unreadCount,
+}) => {
   const router = useRouter();
 
   const goToProfile = () => {
@@ -33,36 +39,39 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress, unreadCount
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
       <View style={styles.headerContainer}>
+        {/* Left: Avatar + Name */}
         <View style={styles.leftBox}>
           {user ? (
-            <>
-              <TouchableOpacity
-                style={{ flexDirection: "row", alignItems: "center" }}
-                onPress={goToProfile}
-                activeOpacity={0.7}
-              >
-                <View style={styles.avatarWrap}>
-                  <View style={styles.avatarCircle}>
-                    {user.avatar_url ? (
-                      <Image
-                        source={{ uri: user.avatar_url }}
-                        style={{ width: 32, height: 32, borderRadius: 16 }}
-                      />
-                    ) : (
-                      <MaterialCommunityIcons
-                        name="account-circle"
-                        size={24}
-                        color="#fff"
-                      />
-                    )}
-                  </View>
-                  <View style={styles.avatarProgress} />
+            <TouchableOpacity
+              style={styles.avatarInfo}
+              onPress={goToProfile}
+              activeOpacity={0.7}
+            >
+              <View style={styles.avatarWrap}>
+                <View style={styles.avatarCircle}>
+                  {user.avatar_url ? (
+                    <Image
+                      source={{ uri: user.avatar_url }}
+                      style={{ width: 32, height: 32, borderRadius: 16 }}
+                    />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="account-circle"
+                      size={24}
+                      color="#fff"
+                    />
+                  )}
                 </View>
-                <Text style={styles.userNameText}>
-                  {user.user_metadata?.name || user.email}
-                </Text>
-              </TouchableOpacity>
-            </>
+                <View style={styles.avatarProgress} />
+              </View>
+              <Text
+                style={styles.userNameText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {user.user_metadata?.name || user.email}
+              </Text>
+            </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.loginBtn}
@@ -73,32 +82,40 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onCrownPress, unreadCount
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.crownBtn}
-          onPress={handleCrownPress}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name="crown-outline" size={28} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.quizBtn}
-          onPress={() => router.push("/quiz" as any)}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name="clipboard-text" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.noteBtn}
-          onPress={() => router.push("/notification")}
-          activeOpacity={0.85}
-        >
-          <Feather name="bell" size={26} color="#FFFFFF" />
-          {unreadCount && unreadCount > 0 && (
-            <View style={styles.badgeDot}>
-              <Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+
+        {/* Right: Icon Buttons */}
+        <View style={styles.rightBox}>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={handleCrownPress}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="crown-outline" size={24} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: "#FF6B6B" }]}
+            onPress={() => router.push("/quiz" as any)}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="clipboard-text" size={20} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: "#E0F0FF" }]}
+            onPress={() => router.push("/notification")}
+            activeOpacity={0.85}
+          >
+            <Feather name="bell" size={22} color="#000" />
+            {unreadCount && unreadCount > 0 && (
+              <View style={styles.badgeDot}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -111,14 +128,31 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     width: "100%",
     paddingHorizontal: 16,
     paddingBottom: 8,
     minHeight: 44,
   },
-  leftBox: { flexDirection: "row", alignItems: "center" },
-  avatarWrap: { justifyContent: "center", alignItems: "center" },
+  leftBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  rightBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  avatarInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 0, // quan trọng để giới hạn độ rộng khi flex: 1
+  },
+  avatarWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
   avatarCircle: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
@@ -142,13 +176,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     lineHeight: 20,
-    marginLeft: 10,
     flexShrink: 1,
-  },
-  userPointText: {
-    color: COLORS.light.INACTIVE,
-    fontSize: 14,
-    marginTop: 2,
   },
   loginBtn: {
     backgroundColor: COLORS.light.ACTIVE,
@@ -164,49 +192,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  crownBtn: {
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.light.BTN_BG,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 44,
-    marginHorizontal: 6,
-  },
-  quizBtn: {
     marginLeft: 6,
     position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
-    minWidth: 40,
-    minHeight: 40,
-    backgroundColor: "#FF6B6B", 
-    borderRadius: 20,
-  },
-  noteBtn: {
-    marginLeft: 6,
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
-    minWidth: 40,
-    minHeight: 40,
-    backgroundColor: "#E0F0FF", 
-    borderRadius: 20,
   },
   badgeDot: {
     position: "absolute",
     top: 3,
-    right: -1,
-    width: 11,
-    height: 11,
-    borderRadius: 5.5,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: COLORS.light.BADGE,
-    borderWidth: 2,
-    borderColor: COLORS.light.BG,
-    zIndex: 3,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 3,
   },
-  badgeText: { color: "#fff", fontWeight: "bold", fontSize: 12, textAlign: "center" },
+  badgeText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 10,
+    textAlign: "center",
+  },
 });
 
 export default HomeHeader;

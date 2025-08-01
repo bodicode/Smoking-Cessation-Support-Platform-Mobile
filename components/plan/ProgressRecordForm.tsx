@@ -4,7 +4,7 @@ import {
   IUpdateProgressRecordInput,
 } from "@/types/api/processRecord";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Platform,
 } from "react-native";
 import COLORS from "@/constants/Colors";
 import { ProgressRecordService } from "@/services/processRecordService";
@@ -22,6 +23,8 @@ import Toast from "react-native-toast-message";
 import { useProgress } from "@/contexts/ProgressRecordContext";
 import { useHealthScoreCriteria } from "@/services/healthScoreCriteria";
 import { AntDesign } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import dayjs from "dayjs";
 
 interface ProgressRecordFormProps {
   initialData?: IProgressRecord;
@@ -41,11 +44,8 @@ interface HealthCriteriaItem {
 
 const htmlToListTextForDisplay = (htmlString: string): string => {
   if (!htmlString) return "";
-
   let plainText = htmlString.replace(/<li>/g, "- ").replace(/<\/li>/g, "\n");
-
   plainText = plainText.replace(/<[^>]*>/g, "");
-
   return plainText
     .split("\n")
     .map((line) => line.trim())
@@ -62,12 +62,13 @@ export default function ProgressRecordForm({
   coachId,
 }: ProgressRecordFormProps) {
   const { refreshData } = useProgress();
-
   const [cigarettesSmoked, setCigarettesSmoked] = useState<string>("");
-  const [healthScore, setHealthScore] = useState<string>("");
+  const [healthScore, setHealthScore] = useState<string>("5");
   const [notes, setNotes] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+  const [recordDate, setRecordDate] = useState<Date>(prefillDate || new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const {
     criteriaList,
@@ -80,16 +81,16 @@ export default function ProgressRecordForm({
   useEffect(() => {
     if (initialData) {
       setCigarettesSmoked(initialData.cigarettes_smoked?.toString() || "");
-      setHealthScore(initialData.health_score?.toString() || "");
+      setHealthScore(initialData.health_score?.toString() || "5");
       setNotes(initialData.notes || "");
+      setRecordDate(new Date(initialData.record_date));
+    } else if (prefillDate) {
+      setRecordDate(prefillDate);
     } else {
-      setCigarettesSmoked("");
-      setHealthScore("5");
-      setNotes("");
+      setRecordDate(new Date());
     }
-  }, [initialData]);
+  }, [initialData, prefillDate]);
 
-  // Refresh data khi component mount để đảm bảo data mới nhất
   useEffect(() => {
     refreshData();
   }, []);
@@ -105,10 +106,7 @@ export default function ProgressRecordForm({
       return;
     }
     if (isNaN(numHealthScore) || numHealthScore < 1 || numHealthScore > 10) {
-      Alert.alert(
-        "Lỗi",
-        "Chỉ số sức khỏe không hợp lệ. Vui lòng nhập một số từ 1 đến 10."
-      );
+      Alert.alert("Lỗi", "Chỉ số sức khỏe phải nằm trong khoảng từ 1 đến 10.");
       return;
     }
 
@@ -129,10 +127,7 @@ export default function ProgressRecordForm({
           ...basePayload,
         };
         resultRecord = await ProgressRecordService.updateRecord(updatePayload);
-        Toast.show({
-          type: "success",
-          text1: "Cập nhật tiến độ thành công!",
-        });
+        Toast.show({ type: "success", text1: "Cập nhật tiến độ thành công!" });
       } else {
         if (!planId) {
           Toast.show({
@@ -144,30 +139,17 @@ export default function ProgressRecordForm({
           return;
         }
 
-        const recordDate = prefillDate
-          ? prefillDate.toISOString()
-          : new Date().toISOString();
+        const recordDateString = recordDate.toISOString();
 
         const createPayload: ICreateProgressRecordInput = {
           ...basePayload,
           plan_id: planId,
-          record_date: recordDate,
+          record_date: recordDateString,
         };
         resultRecord = await ProgressRecordService.createRecord(createPayload);
-        Toast.show({
-          type: "success",
-          text1: "Đã thêm tiến độ thành công!",
-        });
+        Toast.show({ type: "success", text1: "Đã thêm tiến độ thành công!" });
       }
 
-      // Refresh toàn bộ data sau khi tạo/cập nhật bản ghi
-      await refreshData();
-      
-      // Thêm delay nhỏ để đảm bảo data được cập nhật
-      setTimeout(() => {
-        refreshData();
-      }, 100);
-      
       onSubmit(resultRecord);
     } catch (error: any) {
       Alert.alert("Lỗi", error.message || "Đã xảy ra lỗi khi lưu bản ghi.");
@@ -220,6 +202,28 @@ export default function ProgressRecordForm({
         editable={!isSubmitting}
       />
 
+      <Text style={styles.label}>Ngày ghi nhận</Text>
+      <TouchableOpacity
+        onPress={() => setShowDatePicker(true)}
+        style={styles.input}
+        disabled={isSubmitting}
+      >
+        <Text style={{ color: COLORS.light.TEXT }}>
+          {dayjs(recordDate).format("DD/MM/YYYY")}
+        </Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={recordDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) setRecordDate(selectedDate);
+          }}
+        />
+      )}
+
       <Text style={styles.label}>Ghi chú</Text>
       <TextInput
         value={notes}
@@ -258,10 +262,9 @@ export default function ProgressRecordForm({
         </TouchableOpacity>
       </View>
 
-      {/* Modal hiển thị tiêu chí sức khỏe */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={showCriteriaModal}
         onRequestClose={() => setShowCriteriaModal(false)}
       >
@@ -376,7 +379,6 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: COLORS.light.DARK_GREY_TEXT,
   },
-
   modalOverlay: {
     flex: 1,
     justifyContent: "center",

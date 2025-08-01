@@ -75,4 +75,28 @@ export interface AIRecommendation {
 
 export interface GetAIRecommendationResponse {
   getAIRecommendation: AIRecommendation;
+}
+
+export interface TemplateMatchingResult {
+  id: string;
+  createdAt: string;
+  matchingFactors: {
+    source: string;
+    reasoning: {
+      risks: string[];
+      suggestions: string[];
+      considerations: string[];
+      matchingFactors: string[];
+    };
+    timestamp: string;
+    confidence: number;
+  };
+  matchingScore: number;
+  recommendationLevel: string;
+  template: {
+    id: string;
+    name: string;
+    description: string;
+    is_active: boolean;
+  };
 } 

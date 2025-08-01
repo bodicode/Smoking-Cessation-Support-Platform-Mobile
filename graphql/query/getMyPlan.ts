@@ -33,6 +33,7 @@ export const GET_CESSATION_PLANS_QUERY = gql`
           start_date
           end_date
           status
+          max_cigarettes_per_day
         }
       }
       # Có thể thêm các trường phân trang khác nếu API trả về

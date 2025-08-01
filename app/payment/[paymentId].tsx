@@ -63,7 +63,6 @@ export default function PaymentPage() {
         setPayment(response.data);
       }
     } catch (err) {
-      console.error("Error checking payment status:", err);
     } finally {
       setIsCheckingStatus(false);
     }

@@ -89,12 +89,10 @@ export default function PlanTemplateDetailScreen() {
         const hasActiveSub = await SubscriptionService.hasActiveSubscription();
         setHasSubscription(hasActiveSub);
 
-        // Tự động disable custom nếu không có subscription
         if (!hasActiveSub) {
           setIsCustom(false);
         }
       } catch (error) {
-        console.error('Error checking subscription:', error);
         setHasSubscription(false);
         setIsCustom(false);
       } finally {
